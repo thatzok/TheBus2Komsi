@@ -1,0 +1,14 @@
+Zuerst herausfinden, auf welchem COM-Port der Armaturenbrett hängt
+
+./thebusapi -l
+
+Dann starten mit dem Comport (Beispiel comport10)
+
+./thebusapi -p com10
+
+
+Man kann das programm auch gespächiger (engl. verbose) starten
+
+./thebusapi -p com10 -v
+
+
