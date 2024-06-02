@@ -3,6 +3,7 @@ mod komsi;
 mod opts;
 mod serial;
 mod vehicle;
+mod api2vehicle;
 
 use std::io;
 use std::io::Read;
@@ -15,9 +16,9 @@ use crate::api::getapidata;
 use crate::opts::Opts;
 use crate::serial::show_serial_comports;
 use crate::vehicle::compare_vehicle_states;
-use crate::vehicle::get_vehicle_state;
 use crate::vehicle::init_vehicle_state;
 use crate::vehicle::print_vehicle_state;
+use crate::api2vehicle::get_vehicle_state_from_api;
 
 fn main() {
     let opts = Opts::from_args();
@@ -47,7 +48,7 @@ fn main() {
         println!("send empty vehicle data to comport");
 
         let empty_vehicle = init_vehicle_state();
-        let vec = compare_vehicle_states(&empty_vehicle, &empty_vehicle, &opts, true);
+        let vec = compare_vehicle_states(&empty_vehicle, &empty_vehicle, opts.verbose, true);
         if opts.debug_serial {
             println!("SENDING -> {:?}", vec);
         }
@@ -135,8 +136,10 @@ fn real_main(port_name: String, opts: &Opts) {
     let interval = Duration::from_millis(opts.sleeptime);
     let mut next_time = Instant::now() + interval;
 
+    let clientip = &opts.ip;
+
     loop {
-        let api_bus_result = getapidata(&opts);
+        let api_bus_result = getapidata(clientip,opts.debug);
 
         if api_bus_result.is_err() {
             // eprintln!("getapidata error: {}", api_bus_result.unwrap_err());
@@ -156,13 +159,13 @@ fn real_main(port_name: String, opts: &Opts) {
                 api_state = 1;
             }
 
-            let newstate = get_vehicle_state(api_bus);
+            let newstate = get_vehicle_state_from_api(api_bus);
             if debug {
                 print_vehicle_state(&newstate);
             }
 
             // compare and create cmd buf
-            let cmdbuf = compare_vehicle_states(&vehicle_state, &newstate, &opts, false);
+            let cmdbuf = compare_vehicle_states(&vehicle_state, &newstate, verbose, false);
 
             // replace after compare for next round
             vehicle_state = newstate;

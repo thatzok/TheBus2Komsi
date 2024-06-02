@@ -1,6 +1,4 @@
-use crate::opts::Opts;
 use serialport::{available_ports, SerialPortType};
-use std::result::Result;
 
 pub fn show_serial_comports() {
     match available_ports() {

@@ -1,7 +1,6 @@
 use reqwest::blocking::Client;
 use serde::Deserialize;
 use std::time::Duration;
-use crate::opts::Opts;
 
 #[derive(Deserialize, Debug)]
 pub struct ApiVehicleType {
@@ -45,13 +44,13 @@ pub struct ApiLamps {
     pub light_stopbrake: f32,
 }
 
-pub fn getapidata(opts: &Opts) -> Result<ApiVehicleType, Box<dyn std::error::Error>> {
-    let request_url = format!("http://{}:37337/Vehicles/Current", opts.ip);
+pub fn getapidata(ip: &String, debug:bool) -> Result<ApiVehicleType, Box<dyn std::error::Error>> {
+    let request_url = format!("http://{}:37337/Vehicles/Current", ip);
 
     let timeout = Duration::new(2, 0);
     let client = Client::new();
 
-    if opts.debug {
+    if debug {
         eprintln!("Fetching url {} ...", &request_url);
     }
 
@@ -67,7 +66,7 @@ pub fn getapidata(opts: &Opts) -> Result<ApiVehicleType, Box<dyn std::error::Err
     // eprintln!("Headers: {:#?}\n", response.headers());
 
     let api_vehicle: ApiVehicleType = response.json()?;
-    if opts.debug {
+    if debug {
         println!("{:?}", &api_vehicle);
     }
     Ok(api_vehicle)

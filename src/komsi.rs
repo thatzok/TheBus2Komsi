@@ -1,5 +1,3 @@
-use crate::opts::Opts;
-
 pub enum KomsiCommandKind {
     EOL = 10,                // used, end of command line      means EOL which is "\n"
     Ignition = 65,           // A1    A
@@ -45,30 +43,28 @@ pub enum KomsiCommandKind {
     Gz = 122,       // z Water    - not used
 }
 
-pub fn build_komsi_command(cmd: KomsiCommandKind, wert: u32, opts: &Opts) -> Vec<u8> {
+pub fn build_komsi_command(cmd: KomsiCommandKind, wert: u32) -> Vec<u8> {
     let cmd_u8 = cmd as u8;
     let mut buffer: Vec<u8> = vec![cmd_u8];
     let mut s: Vec<u8> = wert.to_string().as_bytes().to_vec();
 
     buffer.append(&mut s);
-
-    // if opts.debug {
-    //    println!("cmd = {:?}", buffer);
-    // }
 
     return buffer;
 }
 
-pub fn build_komsi_command_u8(cmd: KomsiCommandKind, wert: u8, opts: &Opts) -> Vec<u8> {
+pub fn build_komsi_command_u8(cmd: KomsiCommandKind, wert: u8) -> Vec<u8> {
     let cmd_u8 = cmd as u8;
     let mut buffer: Vec<u8> = vec![cmd_u8];
     let mut s: Vec<u8> = wert.to_string().as_bytes().to_vec();
 
     buffer.append(&mut s);
 
-    if opts.debug_command {
-        println!("cmd = {:?}", buffer);
-    }
+    return buffer;
+}
 
+pub fn build_komsi_command_eol() -> Vec<u8> {
+    let cmd_u8 = KomsiCommandKind::EOL as u8;
+    let mut buffer: Vec<u8> = vec![cmd_u8];
     return buffer;
 }
