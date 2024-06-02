@@ -20,6 +20,7 @@ pub struct VehicleState {
     pub lights_stop_request: u8,
     pub lights_stop_brake: u8,
     pub lights_high_beam: u8,
+    pub battery_light: u8,
 }
 
 pub fn print_vehicle_state(v: &VehicleState) {
@@ -38,7 +39,7 @@ pub fn print_vehicle_state(v: &VehicleState) {
     print!("door2:{} ", v.lights_second_door);
     print!("speed:{} ", v.speed);
     print!("maxspeed:{} ", v.maxspeed);
-
+    print!("batterylight:{} ", v.battery_light);
     println!(" ");
 }
 
@@ -59,6 +60,7 @@ pub fn init_vehicle_state() -> VehicleState {
         lights_high_beam: 0,
         fuel: 0,
         lights_stop_brake: 0,
+        battery_light: 0,
     };
     return s;
 }
@@ -230,6 +232,15 @@ pub fn compare_vehicle_states(
         buffer.append(&mut b);
     }
 
+    
+    if (old.battery_light != new.battery_light) || force {
+        if verbose {
+            println!("batterylight:  {} -> {} ", old.battery_light, new.battery_light);
+        }
+        let mut b = build_komsi_command_u8(KomsiCommandKind::BatteryLight, new.battery_light);
+        buffer.append(&mut b);
+    }
+    
     // zeilenende hinzu, wenn buffer nicht leer
     if buffer.len() > 0 {
         let mut b = build_komsi_command_eol();

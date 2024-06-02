@@ -1,8 +1,8 @@
 pub enum KomsiCommandKind {
     EOL = 10,                // used, end of command line      means EOL which is "\n"
-    Ignition = 65,           // A1    A
-    Engine = 66,             // A2    B
-    PassengerDoorsOpen = 67, // A3    C
+    Ignition = 65,           // A1  A
+    Engine = 66,             // A2  B
+    PassengerDoorsOpen = 67, // A3  C
     Indicator = 68,          // A4  D
     FixingBrake = 69,        // A5  E
     LightsWarning = 70,      // A6  F
@@ -26,21 +26,15 @@ pub enum KomsiCommandKind {
     A24 = 88,                // X
     A25 = 89,                // Y
     A26 = 90,                // Z
-    A27 = 97,                // a
-    A28 = 98,                // b
-    A29 = 99,                // c
-    A30 = 100,               //  d
-    A31 = 101,               // e
-    A32 = 102,               // f
 
-    MaxSpeed = 115, // s max speed - used
-    Gt = 116,       // t RPM
-    Gu = 117,       // u Pressure - not used
-    Gv = 118,       // v Temperature  - not used
-    Gw = 119,       // w Oil  - not used
-    Fuel = 120,     // x Fuel - used
-    Speed = 121,    // y Speed    - used
-    Gz = 122,       // z Water    - not used
+    MaxSpeed = 115,    // s
+    RPM = 116,         // t
+    Pressure = 117,    // u
+    Temperature = 118, // v
+    Oil = 119,         // w
+    Fuel = 120,        // x
+    Speed = 121,       // y
+    Water = 122,       // z
 }
 
 pub fn build_komsi_command(cmd: KomsiCommandKind, wert: u32) -> Vec<u8> {
