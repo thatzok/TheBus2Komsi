@@ -13,7 +13,6 @@ use structopt::StructOpt;
 
 use crate::api::getapidata;
 use crate::opts::Opts;
-use crate::serial::find_serial_comports;
 use crate::serial::show_serial_comports;
 use crate::vehicle::compare_vehicle_states;
 use crate::vehicle::get_vehicle_state;
@@ -34,16 +33,6 @@ fn main() {
         return;
     }
 
-    if opts.find.is_some() {
-        // let port_name_result = find_serial_comports(&opts);
-
-        if let Ok(bla) = find_serial_comports(&opts) {
-            port_name = bla;
-        } else {
-            print!("Keinen COMport mit dem Text gefunden.");
-            return;
-        }
-    }
 
     if opts.port.is_some() {
         port_name = <std::option::Option<std::string::String> as Clone>::clone(&opts.port).unwrap();
@@ -55,7 +44,7 @@ fn main() {
     }
 
     if opts.clear {
-        println!("Sende Nullwerte an Comport");
+        println!("send empty vehicle data to comport");
 
         let empty_vehicle = init_vehicle_state();
         let vec = compare_vehicle_states(&empty_vehicle, &empty_vehicle, &opts, true);
@@ -90,8 +79,7 @@ fn main() {
 
 fn real_main_no_serial(opts: &Opts) {
     let debug = opts.debug;
-    let debug_serial = opts.debug_serial;
-
+   
     let verbose = opts.verbose;
 
     let mut vehicle_state = init_vehicle_state();

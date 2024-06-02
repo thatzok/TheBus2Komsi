@@ -2,13 +2,9 @@ use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
 pub struct Opts {
-    /// comport für Kommandos an das Armaturenbrett
+    /// comport Arduino/ESP32 ist connected to
     #[structopt(short, long)]
     pub port: Option<String>,
-
-    /// Find port with name
-    #[structopt(short, long)]
-    pub find: Option<String>,
 
     /// IP des PC auf dem TheBus läuft
     #[structopt(short, long, default_value = "127.0.0.1")]
@@ -22,31 +18,31 @@ pub struct Opts {
     #[structopt(short, long, default_value = "200")]
     pub sleeptime: u64,
 
-    /// debugging einschalten
+    /// enable debugging 
     #[structopt(short, long)]
     pub debug: bool,
 
-    /// debugging serial einschalten
+    /// enable debugging of serial comport
     #[structopt(long)]
     pub debug_serial: bool,
 
-    /// debugging command einschalten
+    /// enable debugging of commands
     #[structopt(long)]
     pub debug_command: bool,
 
-    /// nichts auf seriellen port ausgeben/einlesen
+    /// disable and ignore serial port, nothing is written to serial comport
     #[structopt(long)]
     pub disable_serial: bool,
 
-    /// Alle verfügbaren comports anzeigen
+    /// show all available comports
     #[structopt(short, long)]
     pub list: bool,
 
-    /// Ausführliche Ausgabe einschalten
+    /// enable verbose output
     #[structopt(short, long)]
     pub verbose: bool,
 
-    /// Alle Werte zurücksetzen
+    /// reset all vehicle values
     #[structopt(short, long)]
     pub clear: bool,
 }
