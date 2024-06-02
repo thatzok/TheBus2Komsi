@@ -1,9 +1,9 @@
 mod api;
+mod api2vehicle;
 mod komsi;
 mod opts;
 mod serial;
 mod vehicle;
-mod api2vehicle;
 
 use std::io;
 use std::io::Read;
@@ -12,64 +12,57 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 use structopt::StructOpt;
 
+use configparser::ini::Ini;
+
 use crate::api::getapidata;
+use crate::api2vehicle::get_vehicle_state_from_api;
 use crate::opts::Opts;
 use crate::serial::show_serial_comports;
 use crate::vehicle::compare_vehicle_states;
 use crate::vehicle::init_vehicle_state;
 use crate::vehicle::print_vehicle_state;
-use crate::api2vehicle::get_vehicle_state_from_api;
 
 fn main() {
     let opts = Opts::from_args();
-
-    let mut port_name = String::from("");
-
-    if opts.debug {
-        println!("{:?}", opts);
-    }
 
     if opts.list {
         show_serial_comports();
         return;
     }
 
-
-    if opts.port.is_some() {
-        port_name = <std::option::Option<std::string::String> as Clone>::clone(&opts.port).unwrap();
-    }
-
-    if  (port_name.len() < 1) {
-        println!("Kein COMport angegeben.");
-        return;
-    }
-
     // default, wenn keine anderen Optionen ausgewählt,
-        real_main(port_name, &opts);
-
+    real_main(&opts);
 }
 
-fn real_main(port_name: String, opts: &Opts) {
+fn real_main(opts: &Opts) {
     let debug = opts.debug;
     let debug_serial = opts.debug_serial;
-
     let verbose = opts.verbose;
 
     let mut vehicle_state = init_vehicle_state();
-
     let mut api_state = -1;
 
-    let baud_rate = opts.baud;
 
-    let mut port = serialport::new(&port_name, baud_rate)
+    // TODO checking for file not found and elements not found
+    // now we get config ini
+    let mut config = Ini::new();
+    let _ = config.load("TheBus2Komsi.ini");
+
+    let baudrate = config.getint("default", "baudrate").unwrap().unwrap() as u32;
+    let sleeptime = config.getint("default", "sleeptime").unwrap().unwrap() as u64;
+    let portname = config.get("default", "portname").unwrap();
+    let clientip = config.get("default", "ip").unwrap();
+
+    let mut port = serialport::new(&portname, baudrate)
         .open()
         .expect("Failed to open serial port");
 
     if verbose {
-        eprintln!("Port {:?} geöffnet mit {} baud.", &port_name, &baud_rate);
+        eprintln!("Port {:?} geöffnet mit {} baud.", &portname, &baudrate);
     }
 
-    
+    println!("TheBus2Komsi has started. Have fun!");
+
     // send SimulatorType:TheBus
     let string = "O1\x0a";
     let buffer = string.as_bytes();
@@ -109,13 +102,11 @@ fn real_main(port_name: String, opts: &Opts) {
         thread::sleep(Duration::from_millis(100));
     });
 
-    let interval = Duration::from_millis(opts.sleeptime);
+    let interval = Duration::from_millis(sleeptime);
     let mut next_time = Instant::now() + interval;
 
-    let clientip = &opts.ip;
-
     loop {
-        let api_bus_result = getapidata(clientip,opts.debug);
+        let api_bus_result = getapidata(&clientip, opts.debug);
 
         if api_bus_result.is_err() {
             // eprintln!("getapidata error: {}", api_bus_result.unwrap_err());

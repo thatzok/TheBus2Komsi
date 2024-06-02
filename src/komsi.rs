@@ -65,6 +65,6 @@ pub fn build_komsi_command_u8(cmd: KomsiCommandKind, wert: u8) -> Vec<u8> {
 
 pub fn build_komsi_command_eol() -> Vec<u8> {
     let cmd_u8 = KomsiCommandKind::EOL as u8;
-    let mut buffer: Vec<u8> = vec![cmd_u8];
+    let buffer: Vec<u8> = vec![cmd_u8];
     return buffer;
 }
