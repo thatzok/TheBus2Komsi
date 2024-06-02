@@ -11,12 +11,12 @@ pub enum KomsiCommandKind {
     LightsMain = 71,         // A7  G
     LightsFrontDoor = 72,    // A8  H
     LightsSecondDoor = 73,   // A9  I
-    LightsThirdDoor = 74,    // A10  J not used
+    LightsThirdDoor = 74,    // A10  J
     LightsStopRequest = 75,  // A11 K
     LightsStopBrake = 76,    // A12 L
     LightsHighBeam = 77,     // A13 M
-    A14 = 78,                // N
-    A15 = 79,                // O
+    BatteryLight = 78,       // N
+    SimulatorType = 79,      // O
     A16 = 80,                // P
     A17 = 81,                // Q
     A18 = 82,                // R
@@ -31,7 +31,7 @@ pub enum KomsiCommandKind {
     A27 = 97,                // a
     A28 = 98,                // b
     A29 = 99,                // c
-    Debug = 100,             // A30 d   DEBUG on/off
+    A30 = 100,               //  d
     A31 = 101,               // e
     A32 = 102,               // f
 

@@ -163,6 +163,12 @@ fn real_main(port_name: String, opts: &Opts) {
         eprintln!("Port {:?} geöffnet mit {} baud.", &port_name, &baud_rate);
     }
 
+    
+    // send SimulatorType:TheBus
+    let string = "O1\x0a";
+    let buffer = string.as_bytes();
+    let _ = port.write(buffer);
+
     // Clone the port
     let mut clone = port.try_clone().expect("Failed to clone");
 
