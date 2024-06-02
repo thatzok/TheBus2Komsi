@@ -44,30 +44,6 @@ fn main() {
         return;
     }
 
-    if opts.clear {
-        println!("send empty vehicle data to comport");
-
-        let empty_vehicle = init_vehicle_state();
-        let vec = compare_vehicle_states(&empty_vehicle, &empty_vehicle, opts.verbose, true);
-        if opts.debug_serial {
-            println!("SENDING -> {:?}", vec);
-        }
-
-            let baud_rate = opts.baud;
-
-            let mut port = serialport::new(&port_name, baud_rate)
-                .open()
-                .expect("Failed to open serial port");
-
-            if opts.verbose {
-                eprintln!("Port {:?} geöffnet mit {} baud.", &port_name, &baud_rate);
-            }
-
-            let _ = port.write(&vec);
-
-        return;
-    }
-
     // default, wenn keine anderen Optionen ausgewählt,
         real_main(port_name, &opts);
 

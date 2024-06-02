@@ -38,7 +38,4 @@ pub struct Opts {
     #[structopt(short, long)]
     pub verbose: bool,
 
-    /// reset all vehicle values
-    #[structopt(short, long)]
-    pub clear: bool,
 }
