@@ -30,10 +30,6 @@ pub struct Opts {
     #[structopt(long)]
     pub debug_command: bool,
 
-    /// disable and ignore serial port, nothing is written to serial comport
-    #[structopt(long)]
-    pub disable_serial: bool,
-
     /// show all available comports
     #[structopt(short, long)]
     pub list: bool,

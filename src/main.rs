@@ -38,7 +38,7 @@ fn main() {
         port_name = <std::option::Option<std::string::String> as Clone>::clone(&opts.port).unwrap();
     }
 
-    if !opts.disable_serial && (port_name.len() < 1) {
+    if  (port_name.len() < 1) {
         println!("Kein COMport angegeben.");
         return;
     }
@@ -52,7 +52,6 @@ fn main() {
             println!("SENDING -> {:?}", vec);
         }
 
-        if !opts.disable_serial {
             let baud_rate = opts.baud;
 
             let mut port = serialport::new(&port_name, baud_rate)
@@ -64,71 +63,13 @@ fn main() {
             }
 
             let _ = port.write(&vec);
-        }
 
         return;
     }
 
     // default, wenn keine anderen Optionen ausgewählt,
-    if opts.disable_serial {
-        real_main_no_serial(&opts)
-    } else {
         real_main(port_name, &opts);
-    }
-}
 
-fn real_main_no_serial(opts: &Opts) {
-    let debug = opts.debug;
-   
-    let verbose = opts.verbose;
-
-    let mut vehicle_state = init_vehicle_state();
-
-    let mut api_state = -1;
-
-    let interval = Duration::from_millis(opts.sleeptime);
-    let mut next_time = Instant::now() + interval;
-
-    loop {
-        let api_bus_result = getapidata(&opts);
-
-        if api_bus_result.is_err() {
-            // eprintln!("getapidata error: {}", api_bus_result.unwrap_err());
-            if api_state != 0 {
-                if verbose {
-                    println!("Bitte einsteigen und hinsetzen.");
-                }
-                api_state = 0;
-            }
-        } else {
-            let api_bus = api_bus_result.unwrap();
-            // println!("{:?}", api_bus);
-            if api_state != 1 {
-                if verbose {
-                    println!("Hingesetzt. Jetzt gehts los!");
-                }
-                api_state = 1;
-            }
-
-            let newstate = get_vehicle_state(api_bus);
-            if debug {
-                print_vehicle_state(&newstate);
-            }
-
-            // compare and create cmd buf
-            let cmdbuf = compare_vehicle_states(&vehicle_state, &newstate, &opts, false);
-
-            // replace after compare for next round
-            vehicle_state = newstate;
-
-            if opts.debug_serial && (cmdbuf.len() > 0) {
-                println!("SENDING -> {:?}", cmdbuf);
-            }
-        }
-
-        sleep(next_time - Instant::now());
-        next_time += interval;
-    }
 }
 
 fn real_main(port_name: String, opts: &Opts) {
