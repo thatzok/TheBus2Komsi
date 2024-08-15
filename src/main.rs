@@ -109,7 +109,9 @@ fn real_main(opts: &Opts) {
         let api_bus_result = getapidata(&clientip, opts.debug);
 
         if api_bus_result.is_err() {
-            // eprintln!("getapidata error: {}", api_bus_result.unwrap_err());
+            if debug {
+             eprintln!("getapidata error: {}", api_bus_result.unwrap_err());
+            }
             if api_state != 0 {
                 if verbose {
                     println!("Bitte einsteigen und hinsetzen.");

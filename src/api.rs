@@ -34,9 +34,9 @@ pub struct ApiVehicleType {
 pub struct ApiLamps {
     #[serde(rename = "LightMain")]
     pub light_main: f32,
-    #[serde(rename = "Front Door Light")]
+    #[serde(rename = "ButtonLight Door 1")]
     pub front_door_light: f32,
-    #[serde(rename = "Second Door Light")]
+    #[serde(rename = "ButtonLight Door 2")]
     pub second_door_light: f32,
     #[serde(rename = "LED StopRequest")]
     pub led_stop_request: f32,
