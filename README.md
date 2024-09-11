@@ -1,4 +1,5 @@
 # TheBus2Komsi
+[![Build](https://github.com/thatzok/TheBus2Komsi/actions/workflows/build.yml/badge.svg)](https://github.com/thatzok/TheBus2Komsi/actions/workflows/build.yml)
 
 TheBus2Komsi is an API-Client for the "TheBus" bus simulator.<br>
 
