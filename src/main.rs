@@ -35,9 +35,18 @@ fn main() {
 }
 
 fn real_main(opts: &Opts) {
+
+    
     let debug = opts.debug;
     let debug_serial = opts.debug_serial;
     let verbose = opts.verbose;
+
+    #[cfg(feature = "disablekomsiport")]
+    let verbose = true;
+
+    if verbose {
+        println!("Verbose Mode enabled.");
+    }
 
     let mut vehicle_state = init_vehicle_state();
     let mut api_state = -1;
@@ -48,16 +57,19 @@ fn real_main(opts: &Opts) {
     let mut config = Ini::new();
     let _ = config.load("TheBus2Komsi.ini");
 
+
     let baudrate = config.getint("default", "baudrate").unwrap().unwrap() as u32;
     let sleeptime = config.getint("default", "sleeptime").unwrap().unwrap() as u64;
     let portname = config.get("default", "portname").unwrap();
     let clientip = config.get("default", "ip").unwrap();
 
+    #[cfg(not(feature = "disablekomsiport"))]
     let mut port = serialport::new(&portname, baudrate)
         .open()
         .expect("Failed to open serial port");
 
-    if verbose {
+        #[cfg(not(feature = "disablekomsiport"))]
+        if verbose {
         eprintln!("Port {:?} geöffnet mit {} baud.", &portname, &baudrate);
     }
 
@@ -66,12 +78,15 @@ fn real_main(opts: &Opts) {
     // send SimulatorType:TheBus
     let string = "O1\x0a";
     let buffer = string.as_bytes();
+    #[cfg(not(feature = "disablekomsiport"))]
     let _ = port.write(buffer);
 
+    #[cfg(not(feature = "disablekomsiport"))]
     // Clone the port
     let mut clone = port.try_clone().expect("Failed to clone");
 
     // empfang über seriell ist ausgelagert in eigenen thread
+    #[cfg(not(feature = "disablekomsiport"))]
     thread::spawn(move || loop {
         // Read the bytes back from the cloned port
         let mut buffer: [u8; 1] = [0; 1];
@@ -139,6 +154,7 @@ fn real_main(opts: &Opts) {
             // replace after compare for next round
             vehicle_state = newstate;
 
+            #[cfg(not(feature = "disablekomsiport"))]
             if cmdbuf.len() > 0 {
                 if opts.debug_serial {
                     println!("SENDING -> {:?}", cmdbuf);

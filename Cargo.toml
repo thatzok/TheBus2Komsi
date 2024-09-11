@@ -12,3 +12,17 @@ reqwest = { version = "0.11", features = ["json","blocking"] }
 serialport = "4.3.0"
 structopt = "0.3"
 configparser = "3.0.4"
+
+[features]
+disablekomsiport = []
+
+
+[[bin]]
+name="TheBusTestAPI"
+path="src/main.rs"
+required-features=["disablekomsiport"]
+
+[[bin]]
+name="TheBus2Komsi"
+path="src/main.rs"
+

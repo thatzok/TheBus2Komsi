@@ -23,6 +23,7 @@ jobs:
     - name: Install libudev-dev
       run: sudo apt-get install -y libudev-dev
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --bin TheBus2Komsi --verbose
+      run: cargo build --bin TheBusTestAPI  --features="disablekomsiport" --verbose
     - name: Run tests
       run: cargo test --verbose
