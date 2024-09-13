@@ -36,15 +36,15 @@ pub struct ApiLamps {
     pub traveller_light: f32,
     #[serde(rename = "ButtonLight Door 1")]
     pub front_door_light: f32,
-    #[serde(rename = "ButtonLight Door 2")]
+    #[serde(rename = "ButtonLight Door 2", default)]
     pub second_door_light: f32,
-    #[serde(rename = "LED StopRequest")]
+    #[serde(rename = "LED StopRequest", default)]
     pub led_stop_request: f32,
-    #[serde(rename = "ButtonLight BusStopBrake")]
+    #[serde(rename = "ButtonLight BusStopBrake", default)]
     pub light_stopbrake: f32,
 }
 
-pub fn getapidata(ip: &String, debug:bool) -> Result<ApiVehicleType, Box<dyn std::error::Error>> {
+pub fn getapidata(ip: &String, debug: bool) -> Result<ApiVehicleType, Box<dyn std::error::Error>> {
     let request_url = format!("http://{}:37337/Vehicles/Current", ip);
 
     let timeout = Duration::new(2, 0);
