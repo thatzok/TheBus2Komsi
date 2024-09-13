@@ -31,11 +31,6 @@ pub fn get_vehicle_state_from_api(av: ApiVehicleType) -> VehicleState {
         _ => s.fixing_brake = 0,
     }
 
-    match av.traveller_light.as_str() {
-        "true" => s.lights_high_beam = 1,
-        _ => s.lights_high_beam = 0,
-    }
-
     // wir prüfen nur ob gesetzt, nicht in welche Richtung (in api: -1,0,1 für links,aus,rechts)
     match av.indicator_state {
         0 => s.indicator = 0,  // aus
@@ -50,6 +45,7 @@ pub fn get_vehicle_state_from_api(av: ApiVehicleType) -> VehicleState {
     s.fuel = (av.display_fuel * 100.0).trunc() as u32;
 
     s.lights_main = av.all_lamps.light_main.trunc() as u8;
+    s.lights_high_beam = av.all_lamps.traveller_light.trunc() as u8;
     s.lights_front_door = av.all_lamps.front_door_light.trunc() as u8;
     s.lights_second_door = av.all_lamps.second_door_light.trunc() as u8;
     s.lights_stop_request = av.all_lamps.led_stop_request.trunc() as u8;

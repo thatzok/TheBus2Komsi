@@ -14,8 +14,6 @@ pub struct ApiVehicleType {
     pub warning_lights: String,
     #[serde(rename = "PassengerDoorsOpen")]
     pub passenger_doors_open: String,
-    #[serde(rename = "TravellerLight")]
-    pub traveller_light: String,
     #[serde(rename = "FixingBrake")]
     pub fixing_brake: String,
     #[serde(rename = "Speed")]
@@ -34,6 +32,8 @@ pub struct ApiVehicleType {
 pub struct ApiLamps {
     #[serde(rename = "LightMain")]
     pub light_main: f32,
+    #[serde(rename = "LightTraveling")]
+    pub traveller_light: f32,
     #[serde(rename = "ButtonLight Door 1")]
     pub front_door_light: f32,
     #[serde(rename = "ButtonLight Door 2")]
