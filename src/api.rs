@@ -30,7 +30,7 @@ pub struct ApiVehicleType {
 
 #[derive(Deserialize, Debug)]
 pub struct ApiLamps {
-    #[serde(rename = "LightMain")]
+    #[serde(rename = "LightHeadlight")]
     pub light_main: f32,
     #[serde(rename = "LightTraveling")]
     pub traveller_light: f32,

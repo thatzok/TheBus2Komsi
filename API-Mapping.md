@@ -12,7 +12,7 @@ API-Call is (on local machine): http://127.0.0.1:37337/Vehicles/Current
 | IndicatorState           | D          | Indicator           | 0=off, 1=left on, 2=right on      | 0 -> 0,-1 -> 1, 1 -> 2                  |
 | FixingBrake              | E          | FixingBrake         | 0=off, 1=on                       | false -> 0, true -> 1                   | 
 | WarningLights            | F          | WarningLights       | 0=off, 1=on                       | false -> 0, true -> 1                   |   
-| AllLamps.LightMain       | G          | MainLights          | 0=off, 1=on                       | int of value                            |  
+| AllLamps.LightHeadlight  | G          | MainLights          | 0=off, 1=on                       | int of value                            |  
 | ButtonLight Door 1       | H          | FrontDoor           | 0=closed, 1=open                  | int of value                            |   
 | ButtonLight Door 2       | I          | SecondDoor          | 0=closed, 1=open                  | int of value                            | 
 | LED StopRequest          | K          | StopRequest         | 0=off, 1=on                       | int of value                            |
@@ -23,3 +23,5 @@ API-Call is (on local machine): http://127.0.0.1:37337/Vehicles/Current
 | DisplayFuel              | x          | Fuel                | integer (0 ... 100)               | round of (100*value)                    
 | Speed                    | y          | Speed               | integer                           | abs of round of value                   |
 
+
+AllLamps.LightMain does not change it's value anymore (bug or intended?), we use  AllLamps.LightHeadlight instead as a workaround.
