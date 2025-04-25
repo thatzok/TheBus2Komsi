@@ -1,8 +1,8 @@
 [package]
 name = "TheBus2Komsi"
-version = "1.4.1"
-edition = "2021"
-rust-version = "1.78"
+version = "1.4.2"
+edition = "2024"
+rust-version = "1.86"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
