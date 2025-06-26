@@ -67,7 +67,6 @@ pub fn getapidata(ip: &String, debug: bool) -> Result<ApiVehicleType, Box<dyn st
     // eprintln!("Response: {:?} {}", response.version(), response.status());
     // eprintln!("Headers: {:#?}\n", response.headers());
 
-    let response = client.get(&request_url).timeout(timeout).send()?;
     let value = response.json::<serde_json::Value>()?;
     if debug {
         eprintln!(
@@ -271,30 +270,4 @@ mod tests {
         assert_eq!(lamps.light_stopbrake, 0.0);
     }
 
-    // Test to highlight the duplicate HTTP request issue in getapidata
-    #[test]
-    fn test_getapidata_duplicate_requests() {
-        // This test is a documentation of a potential issue in the getapidata function
-        // The function makes two HTTP requests (lines 57 and 68) which could be inefficient
-
-        // Note: This is a code review test, not a functional test
-        // It doesn't actually test the functionality, but documents the issue
-
-        // The issue is that the function makes two HTTP requests:
-        // 1. First request to check if the response status is successful
-        // 2. Second request to get the JSON data
-
-        // A more efficient implementation would reuse the first response
-        // instead of making a second request
-
-        // This test passes by default, but serves as documentation
-        assert!(true);
-
-        // Potential fix would be to modify getapidata to only make one request:
-        // let response = client.get(&request_url).timeout(timeout).send()?;
-        // if !response.status().is_success() {
-        //     Err("Error: response code")?
-        // }
-        // let value = response.json::<serde_json::Value>()?;
-    }
 }
