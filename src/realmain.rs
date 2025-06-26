@@ -1,46 +1,23 @@
-mod api;
-mod api2vehicle;
-mod komsi;
-mod opts;
-mod serial;
-mod vehicle;
-
 use std::io;
 use std::io::Read;
 use std::thread;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-use structopt::StructOpt;
 
 use configparser::ini::Ini;
 
 use crate::api::getapidata;
 use crate::api2vehicle::get_vehicle_state_from_api;
 use crate::opts::Opts;
-use crate::serial::show_serial_comports;
 use crate::vehicle::compare_vehicle_states;
 use crate::vehicle::init_vehicle_state;
 use crate::vehicle::print_vehicle_state;
 
-fn main() {
-    let opts = Opts::from_args();
 
-    if opts.list {
-        show_serial_comports();
-        return;
-    }
-
-    // default, wenn keine anderen Optionen ausgewählt,
-    real_main(&opts);
-}
-
-fn real_main(opts: &Opts) {
+pub fn real_main(opts: &Opts) {
     let debug = opts.debug;
     let debug_serial = opts.debug_serial;
     let verbose = opts.verbose;
-
-    #[cfg(feature = "disablekomsiport")]
-    let verbose = true;
 
     if verbose {
         println!("Verbose Mode enabled.");
@@ -59,12 +36,10 @@ fn real_main(opts: &Opts) {
     let portname = config.get("default", "portname").unwrap();
     let clientip = config.get("default", "ip").unwrap();
 
-    #[cfg(not(feature = "disablekomsiport"))]
     let mut port = serialport::new(&portname, baudrate)
         .open()
         .expect("Failed to open serial port");
 
-    #[cfg(not(feature = "disablekomsiport"))]
     if verbose {
         eprintln!("Port {:?} geöffnet mit {} baud.", &portname, &baudrate);
     }
@@ -74,15 +49,12 @@ fn real_main(opts: &Opts) {
     // send SimulatorType:TheBus
     let string = "O1\x0a";
     let buffer = string.as_bytes();
-    #[cfg(not(feature = "disablekomsiport"))]
     let _ = port.write(buffer);
 
-    #[cfg(not(feature = "disablekomsiport"))]
     // Clone the port
     let mut clone = port.try_clone().expect("Failed to clone");
 
     // empfang über seriell ist ausgelagert in eigenen thread
-    #[cfg(not(feature = "disablekomsiport"))]
     thread::spawn(move || {
         loop {
             // Read the bytes back from the cloned port
@@ -152,7 +124,6 @@ fn real_main(opts: &Opts) {
             // replace after compare for next round
             vehicle_state = newstate;
 
-            #[cfg(not(feature = "disablekomsiport"))]
             if cmdbuf.len() > 0 {
                 if opts.debug_serial {
                     println!("SENDING -> {:?}", cmdbuf);
