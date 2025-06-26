@@ -22,6 +22,7 @@ pub fn real_main(opts: &Opts) {
 
     if verbose {
         println!("Verbose Mode enabled.");
+        println!("Version: {}", env!("CARGO_PKG_VERSION"));
     }
 
     let mut vehicle_state = init_vehicle_state();
@@ -34,7 +35,7 @@ pub fn real_main(opts: &Opts) {
     let mut sleeptime = 1000;
     let mut portname = "COM1".to_string();
     let mut clientip = "127.0.0.1".to_string();
-    
+
     if Path::new(config_path).exists() {
         // now we get config ini
         let mut config = Ini::new();
@@ -44,7 +45,7 @@ pub fn real_main(opts: &Opts) {
         sleeptime = config.getint("default", "sleeptime").unwrap().unwrap() as u64;
         portname = config.get("default", "portname").unwrap();
         clientip = config.get("default", "ip").unwrap();
-        
+
     }
 
 
