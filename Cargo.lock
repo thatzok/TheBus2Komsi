@@ -1251,6 +1251,7 @@ dependencies = [
  "configparser",
  "reqwest",
  "serde",
+ "serde_json",
  "serialport",
 ]
 

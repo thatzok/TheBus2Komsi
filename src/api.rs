@@ -32,9 +32,9 @@ pub struct ApiVehicleType {
 pub struct ApiLamps {
     #[serde(rename = "LightHeadlight")]
     pub light_main: f32,
-    #[serde(rename = "LightTraveling")]
+    #[serde(rename = "LightTraveling", alias = "LightTraveling1")]
     pub traveller_light: f32,
-    #[serde(rename = "ButtonLight Door 1")]
+    #[serde(rename = "ButtonLight Door 1",alias="Door Button 1")]
     pub front_door_light: f32,
     #[serde(rename = "ButtonLight Door 2", default)]
     pub second_door_light: f32,
@@ -65,7 +65,21 @@ pub fn getapidata(ip: &String, debug: bool) -> Result<ApiVehicleType, Box<dyn st
     // eprintln!("Response: {:?} {}", response.version(), response.status());
     // eprintln!("Headers: {:#?}\n", response.headers());
 
-    let api_vehicle: ApiVehicleType = response.json()?;
+    let response = client.get(&request_url).timeout(timeout).send()?;
+    let value = response.json::<serde_json::Value>()?;
+    if debug {
+        eprintln!(
+            "JSON structure:\n{}",
+            serde_json::to_string_pretty(&value).unwrap()
+        );
+    }
+
+    let api_vehicle: ApiVehicleType = serde_json::from_value(value).map_err(|e| {
+        eprintln!("Failed to parse API response as JSON: {}", e);
+        eprintln!("API endpoint: {}", request_url);
+        Box::new(e) as Box<dyn std::error::Error>
+    })?;
+
     if debug {
         println!("{:?}", &api_vehicle);
     }
