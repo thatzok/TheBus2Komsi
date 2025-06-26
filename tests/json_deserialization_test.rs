@@ -6,7 +6,7 @@ use serde_json;
 #[test]
 fn test_json_deserialization_from_files() {
 
-//    test_vehicle_deserialization("tests/json/man_lionscity.json", "BLA");
+    test_vehicle_deserialization("tests/json/man_lionscity.json", "BP_MAN_LionsCityDD_Base_C_2147417439");
     test_vehicle_deserialization("tests/json/mb_ecitaro.json", "BP_Mercedes_eCitaro_12m_2Door_C_2147345014");
     test_vehicle_deserialization("tests/json/scania_citywide.json", "BP_Scania_Citywide_12M2D_C_2147248282");
     test_vehicle_deserialization("tests/json/solaris_urbino.json", "BP_Solaris_Urbino_12m_2D_C_2147468046");
