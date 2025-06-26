@@ -3,17 +3,6 @@
 version = 4
 
 [[package]]
-name = "TheBus2Komsi"
-version = "1.4.2"
-dependencies = [
- "clap",
- "configparser",
- "reqwest",
- "serde",
- "serialport",
-]
-
-[[package]]
 name = "addr2line"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1252,6 +1241,17 @@ dependencies = [
  "once_cell",
  "rustix",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "the_bus_2_komsi"
+version = "1.4.2"
+dependencies = [
+ "clap",
+ "configparser",
+ "reqwest",
+ "serde",
+ "serialport",
 ]
 
 [[package]]

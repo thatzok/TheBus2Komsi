@@ -1,5 +1,5 @@
 [package]
-name = "TheBus2Komsi"
+name = "the_bus_2_komsi"
 version = "1.4.2"
 edition = "2024"
 rust-version = "1.87"
@@ -15,10 +15,6 @@ configparser = "3.0"
 
 [features]
 disablekomsiport = []
-
-[lib]
-name = "TheBus2Komsi"
-path = "src/lib.rs"
 
 [[bin]]
 name = "TheBus2Komsi"

@@ -1,5 +1,6 @@
 use std::io;
 use std::io::Read;
+use std::path::Path;
 use std::thread;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
@@ -27,34 +28,56 @@ pub fn real_main(opts: &Opts) {
     let mut api_state = -1;
 
     // TODO checking for file not found and elements not found
-    // now we get config ini
-    let mut config = Ini::new();
-    let _ = config.load("TheBus2Komsi.ini");
+    let config_path = "TheBus2Komsi.ini";
 
-    let baudrate = config.getint("default", "baudrate").unwrap().unwrap() as u32;
-    let sleeptime = config.getint("default", "sleeptime").unwrap().unwrap() as u64;
-    let portname = config.get("default", "portname").unwrap();
-    let clientip = config.get("default", "ip").unwrap();
+    let mut baudrate = 115200;
+    let mut sleeptime = 1000;
+    let mut portname = "COM1".to_string();
+    let mut clientip = "127.0.0.1".to_string();
+    
+    if Path::new(config_path).exists() {
+        // now we get config ini
+        let mut config = Ini::new();
+        let _ = config.load(config_path);
 
+        baudrate = config.getint("default", "baudrate").unwrap().unwrap() as u32;
+        sleeptime = config.getint("default", "sleeptime").unwrap().unwrap() as u64;
+        portname = config.get("default", "portname").unwrap();
+        clientip = config.get("default", "ip").unwrap();
+        
+    }
+
+
+    #[cfg(not(feature = "disablekomsiport"))]
     let mut port = serialport::new(&portname, baudrate)
         .open()
         .expect("Failed to open serial port");
 
+    #[cfg(not(feature = "disablekomsiport"))]
     if verbose {
         eprintln!("Port {:?} geöffnet mit {} baud.", &portname, &baudrate);
     }
 
+    #[cfg(feature = "disablekomsiport")]
     println!("TheBus2Komsi has started. Have fun!");
 
+    #[cfg(not(feature = "disablekomsiport"))]
+    println!("TheBusTestAPI has started. Have fun!");
+
     // send SimulatorType:TheBus
+    #[cfg(not(feature = "disablekomsiport"))]    
     let string = "O1\x0a";
+    #[cfg(not(feature = "disablekomsiport"))]    
     let buffer = string.as_bytes();
+    #[cfg(not(feature = "disablekomsiport"))]
     let _ = port.write(buffer);
 
     // Clone the port
+    #[cfg(not(feature = "disablekomsiport"))]
     let mut clone = port.try_clone().expect("Failed to clone");
 
     // empfang über seriell ist ausgelagert in eigenen thread
+    #[cfg(not(feature = "disablekomsiport"))]    
     thread::spawn(move || {
         loop {
             // Read the bytes back from the cloned port
@@ -124,6 +147,7 @@ pub fn real_main(opts: &Opts) {
             // replace after compare for next round
             vehicle_state = newstate;
 
+            #[cfg(not(feature = "disablekomsiport"))]
             if cmdbuf.len() > 0 {
                 if opts.debug_serial {
                     println!("SENDING -> {:?}", cmdbuf);
