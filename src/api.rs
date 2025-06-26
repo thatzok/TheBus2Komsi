@@ -6,6 +6,8 @@ use std::time::Duration;
 pub struct ApiVehicleType {
     #[serde(rename = "ActorName")]
     pub actor_name: String,
+    #[serde(rename = "VehicleModel")]
+    pub vehicle_model: String,
     #[serde(rename = "IgnitionEnabled")]
     pub ignition_enabled: String,
     #[serde(rename = "EngineStarted")]
@@ -134,6 +136,7 @@ mod tests {
     fn test_api_vehicle_type_deserialization() {
         let json_data = json!({
             "ActorName": "TestVehicle",
+            "VehicleModel": "TestVehicleModel",
             "IgnitionEnabled": "True",
             "EngineStarted": "True",
             "WarningLights": "False",
@@ -156,6 +159,7 @@ mod tests {
         let vehicle: ApiVehicleType = serde_json::from_value(json_data).unwrap();
 
         assert_eq!(vehicle.actor_name, "TestVehicle");
+        assert_eq!(vehicle.vehicle_model, "TestVehicleModel");
         assert_eq!(vehicle.ignition_enabled, "True");
         assert_eq!(vehicle.engine_started, "True");
         assert_eq!(vehicle.warning_lights, "False");
@@ -200,6 +204,7 @@ mod tests {
         // Test successful JSON parsing
         let valid_json = json!({
             "ActorName": "TestVehicle",
+            "VehicleModel": "TestVehicleModel",
             "IgnitionEnabled": "True",
             "EngineStarted": "True",
             "WarningLights": "False",

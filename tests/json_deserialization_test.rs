@@ -5,37 +5,35 @@ use serde_json;
 
 #[test]
 fn test_json_deserialization_from_files() {
-    // Test files
-    let ecitaro_file = Path::new("tests/ecitaro_12m_2d.json");
-    let urbino_file = Path::new("tests/urbino_12m_2D.json");
 
-    // Test ecitaro_12m_2d.json
-    let ecitaro_json = fs::read_to_string(ecitaro_file)
-        .expect("Failed to read ecitaro_12m_2d.json");
+//    test_vehicle_deserialization("tests/json/man_lionscity.json", "BLA");
+    test_vehicle_deserialization("tests/json/mb_ecitaro.json", "BP_Mercedes_eCitaro_12m_2Door_C_2147345014");
+    test_vehicle_deserialization("tests/json/scania_citywide.json", "BP_Scania_Citywide_12M2D_C_2147248282");
+    test_vehicle_deserialization("tests/json/solaris_urbino.json", "BP_Solaris_Urbino_12m_2D_C_2147468046");
+    test_vehicle_deserialization("tests/json/vdl_citea.json", "BP_VDL_Citea_LLE_120_2D_C_2147124848");
+    
+}
 
-    let ecitaro_vehicle: ApiVehicleType = serde_json::from_str(&ecitaro_json)
-        .expect("Failed to deserialize ecitaro_12m_2d.json");
+fn test_vehicle_deserialization(file_path: &str, actor_name: &str) {
+    // Create path
+    let file = Path::new(file_path);
 
-    // Basic validation for ecitaro
-    assert!(!ecitaro_vehicle.actor_name.is_empty(), "Actor name should not be empty");
+    // Read and deserialize the JSON file
+    let json = fs::read_to_string(file)
+        .expect(&format!("Failed to read {}", file_path));
 
-    // Test urbino_12m_2D.json
-    let urbino_json = fs::read_to_string(urbino_file)
-        .expect("Failed to read urbino_12m_2D.json");
+    let vehicle: ApiVehicleType = serde_json::from_str(&json)
+        .expect(&format!("Failed to deserialize {}", file_path));
 
-    let urbino_vehicle: ApiVehicleType = serde_json::from_str(&urbino_json)
-        .expect("Failed to deserialize urbino_12m_2D.json");
+    // Basic validation
+    assert!(!vehicle.actor_name.is_empty(), "Actor name should not be empty");
+    assert_eq!(vehicle.actor_name, actor_name, "Actor name should match the expected value");
 
-    // Basic validation for urbino
-    assert!(!urbino_vehicle.actor_name.is_empty(), "Actor name should not be empty");
-
-    // Additional validations
-    println!("Successfully deserialized ecitaro model: {}", ecitaro_vehicle.actor_name);
-    println!("Successfully deserialized urbino model: {}", urbino_vehicle.actor_name);
+    // Print success message
+    println!("Successfully deserialized \"{}\" model: {}", vehicle.vehicle_model, vehicle.actor_name);
 
     // Validate specific fields
-    validate_vehicle(&ecitaro_vehicle, "Ecitaro");
-    validate_vehicle(&urbino_vehicle, "Urbino");
+    validate_vehicle(&vehicle, actor_name);
 }
 
 fn validate_vehicle(vehicle: &ApiVehicleType, name: &str) {
