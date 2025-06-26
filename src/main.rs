@@ -35,8 +35,6 @@ fn main() {
 }
 
 fn real_main(opts: &Opts) {
-
-    
     let debug = opts.debug;
     let debug_serial = opts.debug_serial;
     let verbose = opts.verbose;
@@ -51,12 +49,10 @@ fn real_main(opts: &Opts) {
     let mut vehicle_state = init_vehicle_state();
     let mut api_state = -1;
 
-
     // TODO checking for file not found and elements not found
     // now we get config ini
     let mut config = Ini::new();
     let _ = config.load("TheBus2Komsi.ini");
-
 
     let baudrate = config.getint("default", "baudrate").unwrap().unwrap() as u32;
     let sleeptime = config.getint("default", "sleeptime").unwrap().unwrap() as u64;
@@ -68,8 +64,8 @@ fn real_main(opts: &Opts) {
         .open()
         .expect("Failed to open serial port");
 
-        #[cfg(not(feature = "disablekomsiport"))]
-        if verbose {
+    #[cfg(not(feature = "disablekomsiport"))]
+    if verbose {
         eprintln!("Port {:?} geöffnet mit {} baud.", &portname, &baudrate);
     }
 
@@ -87,34 +83,36 @@ fn real_main(opts: &Opts) {
 
     // empfang über seriell ist ausgelagert in eigenen thread
     #[cfg(not(feature = "disablekomsiport"))]
-    thread::spawn(move || loop {
-        // Read the bytes back from the cloned port
-        let mut buffer: [u8; 1] = [0; 1];
+    thread::spawn(move || {
+        loop {
+            // Read the bytes back from the cloned port
+            let mut buffer: [u8; 1] = [0; 1];
 
-        if clone.bytes_to_read().unwrap() > 0 {
-            if debug_serial {
-                eprint!("REC: ");
-            }
+            if clone.bytes_to_read().unwrap() > 0 {
+                if debug_serial {
+                    eprint!("REC: ");
+                }
 
-            while clone.bytes_to_read().unwrap() > 0 {
-                match clone.read(&mut buffer) {
-                    Ok(bytes) => {
-                        if bytes > 0 {
-                            if debug_serial {
-                                eprint!("{}", buffer[0] as char);
+                while clone.bytes_to_read().unwrap() > 0 {
+                    match clone.read(&mut buffer) {
+                        Ok(bytes) => {
+                            if bytes > 0 {
+                                if debug_serial {
+                                    eprint!("{}", buffer[0] as char);
+                                }
                             }
                         }
+                        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                        Err(e) => eprintln!("{:?}", e),
                     }
-                    Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                    Err(e) => eprintln!("{:?}", e),
+                }
+                if debug_serial {
+                    eprintln!("");
                 }
             }
-            if debug_serial {
-                eprintln!("");
-            }
-        }
 
-        thread::sleep(Duration::from_millis(100));
+            thread::sleep(Duration::from_millis(100));
+        }
     });
 
     let interval = Duration::from_millis(sleeptime);
@@ -125,7 +123,7 @@ fn real_main(opts: &Opts) {
 
         if api_bus_result.is_err() {
             if debug {
-             eprintln!("getapidata error: {}", api_bus_result.unwrap_err());
+                eprintln!("getapidata error: {}", api_bus_result.unwrap_err());
             }
             if api_state != 0 {
                 if verbose {

@@ -1,7 +1,6 @@
-use crate::vehicle::init_vehicle_state;
-use crate::vehicle::VehicleState;
 use crate::api::ApiVehicleType;
-
+use crate::vehicle::VehicleState;
+use crate::vehicle::init_vehicle_state;
 
 pub fn get_vehicle_state_from_api(av: ApiVehicleType) -> VehicleState {
     let mut s = init_vehicle_state();
@@ -53,4 +52,3 @@ pub fn get_vehicle_state_from_api(av: ApiVehicleType) -> VehicleState {
 
     return s;
 }
-

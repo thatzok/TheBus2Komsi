@@ -2,8 +2,7 @@ use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
 pub struct Opts {
-
-    /// enable debugging 
+    /// enable debugging
     #[structopt(short, long)]
     pub debug: bool,
 
@@ -22,5 +21,4 @@ pub struct Opts {
     /// enable verbose output
     #[structopt(short, long)]
     pub verbose: bool,
-
 }

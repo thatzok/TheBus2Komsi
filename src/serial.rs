@@ -1,4 +1,4 @@
-use serialport::{available_ports, SerialPortType};
+use serialport::{SerialPortType, available_ports};
 
 pub fn show_serial_comports() {
     match available_ports() {
@@ -41,4 +41,3 @@ pub fn show_serial_comports() {
         }
     }
 }
-

@@ -55,7 +55,7 @@ pub fn getapidata(ip: &String, debug: bool) -> Result<ApiVehicleType, Box<dyn st
     }
 
     let response = client.get(&request_url).timeout(timeout).send()?; // wir warten auf die antwort
-                                                                      // eprintln!("http get erfolgt");
+    // eprintln!("http get erfolgt");
 
     if !response.status().is_success() {
         Err("Error: response code")?
