@@ -139,8 +139,7 @@ pub fn real_main(opts: &Opts) {
                             }
 
                             // Read available bytes
-                            let mut read_error = false;
-                            'reading: while !read_error {
+                            'reading: loop {
                                 match p.bytes_to_read() {
                                     Ok(bytes) if bytes > 0 => {
                                         match p.read(&mut buffer) {
@@ -152,7 +151,6 @@ pub fn real_main(opts: &Opts) {
                                             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                                             Err(e) => {
                                                 eprintln!("Error reading from port: {:?}", e);
-                                                read_error = true;
                                                 need_reconnect = true;
                                                 break 'reading;
                                             }
@@ -161,7 +159,6 @@ pub fn real_main(opts: &Opts) {
                                     Ok(_) => break 'reading,
                                     Err(e) => {
                                         eprintln!("Error checking bytes to read: {:?}", e);
-                                        read_error = true;
                                         need_reconnect = true;
                                         break 'reading;
                                     }
