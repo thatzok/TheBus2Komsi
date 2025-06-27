@@ -16,17 +16,21 @@ use crate::vehicle::compare_vehicle_states;
 use crate::vehicle::init_vehicle_state;
 use crate::vehicle::print_vehicle_state;
 
-
-// Function to attempt to open the serial port
+// Serial port functionality
+// This function is only included when the disablekomsiport feature is not enabled
 #[cfg(not(feature = "disablekomsiport"))]
-fn try_open_serial_port(portname: &str, baudrate: u32, verbose: bool) -> Option<Box<dyn SerialPort>> {
+fn try_open_serial_port(
+    portname: &str,
+    baudrate: u32,
+    verbose: bool,
+) -> Option<Box<dyn SerialPort>> {
     match serialport::new(portname, baudrate).open() {
         Ok(port) => {
             if verbose {
                 eprintln!("Port {:?} geöffnet mit {} baud.", portname, baudrate);
             }
             Some(port)
-        },
+        }
         Err(e) => {
             eprintln!("Failed to open serial port {}: {}", portname, e);
             None
@@ -47,11 +51,10 @@ pub fn real_main(opts: &Opts) {
     let mut vehicle_state = init_vehicle_state();
     let mut api_state = -1;
 
-    // TODO checking for file not found and elements not found
     let config_path = "TheBus2Komsi.ini";
 
     let mut baudrate = 115200;
-    let mut sleeptime = 1000;
+    let mut sleeptime = 200;
     let mut portname = "COM1".to_string();
     let mut clientip = "127.0.0.1".to_string();
 
@@ -60,26 +63,67 @@ pub fn real_main(opts: &Opts) {
         let mut config = Ini::new();
         let _ = config.load(config_path);
 
-        baudrate = config.getint("default", "baudrate").unwrap().unwrap() as u32;
-        sleeptime = config.getint("default", "sleeptime").unwrap().unwrap() as u64;
-        portname = config.get("default", "portname").unwrap();
-        clientip = config.get("default", "ip").unwrap();
+        // Check for missing configuration values and use defaults if needed
+        match config.getint("default", "baudrate") {
+            Ok(Some(value)) => baudrate = value as u32,
+            Ok(None) | Err(_) => {
+                if verbose {
+                    println!("Using default baudrate: {}", baudrate);
+                }
+            }
+        }
+
+        match config.getint("default", "sleeptime") {
+            Ok(Some(value)) => sleeptime = value as u64,
+            Ok(None) | Err(_) => {
+                if verbose {
+                    println!("Using default sleeptime: {}", sleeptime);
+                }
+            }
+        }
+
+        match config.get("default", "portname") {
+            Some(value) => portname = value,
+            None => {
+                if verbose {
+                    println!("Using default portname: {}", portname);
+                }
+            }
+        }
+
+        match config.get("default", "ip") {
+            Some(value) => clientip = value,
+            None => {
+                if verbose {
+                    println!("Using default IP: {}", clientip);
+                }
+            }
+        }
+    } else if verbose {
+        println!(
+            "Config file {} not found, using default values IP: {}, portname: {}, baudrate: {}, sleeptime: {}",
+            config_path, clientip, portname, baudrate, sleeptime
+        );
     }
 
+    // Display appropriate startup message based on feature configuration
     #[cfg(feature = "disablekomsiport")]
     println!("TheBus2Komsi has started. Have fun!");
 
     #[cfg(not(feature = "disablekomsiport"))]
     println!("TheBusTestAPI has started. Have fun!");
 
+    // Serial port initialization and configuration
     // Create a shared port that can be safely accessed from multiple threads
     #[cfg(not(feature = "disablekomsiport"))]
-    let port = Arc::new(Mutex::new(try_open_serial_port(&portname, baudrate, verbose)));
+    let port = Arc::new(Mutex::new(try_open_serial_port(
+        &portname, baudrate, verbose,
+    )));
 
-    // send SimulatorType:TheBus if port is available
-    #[cfg(not(feature = "disablekomsiport"))]    
+    // Send SimulatorType:TheBus initialization message if port is available
+    #[cfg(not(feature = "disablekomsiport"))]
     let string = "O1\x0a";
-    #[cfg(not(feature = "disablekomsiport"))]    
+    #[cfg(not(feature = "disablekomsiport"))]
     let buffer = string.as_bytes();
     #[cfg(not(feature = "disablekomsiport"))]
     {
@@ -91,7 +135,7 @@ pub fn real_main(opts: &Opts) {
         }
     }
 
-    // Clone the port for the reading thread
+    // Prepare variables for the serial port reading thread
     #[cfg(not(feature = "disablekomsiport"))]
     let port_clone = Arc::clone(&port);
     #[cfg(not(feature = "disablekomsiport"))]
@@ -101,8 +145,9 @@ pub fn real_main(opts: &Opts) {
     #[cfg(not(feature = "disablekomsiport"))]
     let verbose_clone = verbose;
 
-    // empfang über seriell ist ausgelagert in eigenen thread
-    #[cfg(not(feature = "disablekomsiport"))]    
+    // Serial port reading thread
+    // This thread continuously reads data from the serial port and handles reconnection if needed
+    #[cfg(not(feature = "disablekomsiport"))]
     thread::spawn(move || {
         loop {
             let mut need_reconnect = false;
@@ -141,21 +186,19 @@ pub fn real_main(opts: &Opts) {
                             // Read available bytes
                             'reading: loop {
                                 match p.bytes_to_read() {
-                                    Ok(bytes) if bytes > 0 => {
-                                        match p.read(&mut buffer) {
-                                            Ok(bytes) => {
-                                                if bytes > 0 && debug_serial_clone {
-                                                    eprint!("{}", buffer[0] as char);
-                                                }
-                                            }
-                                            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                                            Err(e) => {
-                                                eprintln!("Error reading from port: {:?}", e);
-                                                need_reconnect = true;
-                                                break 'reading;
+                                    Ok(bytes) if bytes > 0 => match p.read(&mut buffer) {
+                                        Ok(bytes) => {
+                                            if bytes > 0 && debug_serial_clone {
+                                                eprint!("{}", buffer[0] as char);
                                             }
                                         }
-                                    }
+                                        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                                        Err(e) => {
+                                            eprintln!("Error reading from port: {:?}", e);
+                                            need_reconnect = true;
+                                            break 'reading;
+                                        }
+                                    },
                                     Ok(_) => break 'reading,
                                     Err(e) => {
                                         eprintln!("Error checking bytes to read: {:?}", e);
@@ -225,14 +268,16 @@ pub fn real_main(opts: &Opts) {
             // replace after compare for next round
             vehicle_state = newstate;
 
+            // Send commands to the serial port when the disablekomsiport feature is not enabled
             #[cfg(not(feature = "disablekomsiport"))]
             if cmdbuf.len() > 0 {
                 if opts.debug_serial {
                     println!("SENDING -> {:?}", cmdbuf);
                 }
 
-                // Write to serial port
+                // Write to serial port with reconnection handling
                 let mut port_guard = port.lock().unwrap();
+
                 // Try to reconnect if port is not available
                 if port_guard.is_none() {
                     *port_guard = try_open_serial_port(&portname, baudrate, verbose);

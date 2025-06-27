@@ -15,6 +15,8 @@ clap = { version = "4.5", features = ["derive"] }
 configparser = "3.1"
 
 [features]
+# When enabled, disables all serial port communication with Komsi hardware
+# Used for testing the API without requiring physical hardware
 disablekomsiport = []
 
 [[bin]]
