@@ -1,11 +1,13 @@
 use std::io;
 use std::io::Read;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 use configparser::ini::Ini;
+use serialport::SerialPort;
 
 use crate::api::getapidata;
 use crate::api2vehicle::get_vehicle_state_from_api;
@@ -14,6 +16,23 @@ use crate::vehicle::compare_vehicle_states;
 use crate::vehicle::init_vehicle_state;
 use crate::vehicle::print_vehicle_state;
 
+
+// Function to attempt to open the serial port
+#[cfg(not(feature = "disablekomsiport"))]
+fn try_open_serial_port(portname: &str, baudrate: u32, verbose: bool) -> Option<Box<dyn SerialPort>> {
+    match serialport::new(portname, baudrate).open() {
+        Ok(port) => {
+            if verbose {
+                eprintln!("Port {:?} geöffnet mit {} baud.", portname, baudrate);
+            }
+            Some(port)
+        },
+        Err(e) => {
+            eprintln!("Failed to open serial port {}: {}", portname, e);
+            None
+        }
+    }
+}
 
 pub fn real_main(opts: &Opts) {
     let debug = opts.debug;
@@ -45,18 +64,6 @@ pub fn real_main(opts: &Opts) {
         sleeptime = config.getint("default", "sleeptime").unwrap().unwrap() as u64;
         portname = config.get("default", "portname").unwrap();
         clientip = config.get("default", "ip").unwrap();
-
-    }
-
-
-    #[cfg(not(feature = "disablekomsiport"))]
-    let mut port = serialport::new(&portname, baudrate)
-        .open()
-        .expect("Failed to open serial port");
-
-    #[cfg(not(feature = "disablekomsiport"))]
-    if verbose {
-        eprintln!("Port {:?} geöffnet mit {} baud.", &portname, &baudrate);
     }
 
     #[cfg(feature = "disablekomsiport")]
@@ -65,48 +72,121 @@ pub fn real_main(opts: &Opts) {
     #[cfg(not(feature = "disablekomsiport"))]
     println!("TheBusTestAPI has started. Have fun!");
 
-    // send SimulatorType:TheBus
+    // Create a shared port that can be safely accessed from multiple threads
+    #[cfg(not(feature = "disablekomsiport"))]
+    let port = Arc::new(Mutex::new(try_open_serial_port(&portname, baudrate, verbose)));
+
+    // send SimulatorType:TheBus if port is available
     #[cfg(not(feature = "disablekomsiport"))]    
     let string = "O1\x0a";
     #[cfg(not(feature = "disablekomsiport"))]    
     let buffer = string.as_bytes();
     #[cfg(not(feature = "disablekomsiport"))]
-    let _ = port.write(buffer);
+    {
+        let mut port_guard = port.lock().unwrap();
+        if let Some(ref mut p) = *port_guard {
+            if let Err(e) = p.write(buffer) {
+                eprintln!("Error writing to port: {}", e);
+            }
+        }
+    }
 
-    // Clone the port
+    // Clone the port for the reading thread
     #[cfg(not(feature = "disablekomsiport"))]
-    let mut clone = port.try_clone().expect("Failed to clone");
+    let port_clone = Arc::clone(&port);
+    #[cfg(not(feature = "disablekomsiport"))]
+    let portname_clone = portname.clone();
+    #[cfg(not(feature = "disablekomsiport"))]
+    let debug_serial_clone = debug_serial;
+    #[cfg(not(feature = "disablekomsiport"))]
+    let verbose_clone = verbose;
 
     // empfang über seriell ist ausgelagert in eigenen thread
     #[cfg(not(feature = "disablekomsiport"))]    
     thread::spawn(move || {
         loop {
-            // Read the bytes back from the cloned port
-            let mut buffer: [u8; 1] = [0; 1];
+            let mut need_reconnect = false;
 
-            if clone.bytes_to_read().unwrap() > 0 {
-                if debug_serial {
-                    eprint!("REC: ");
-                }
-
-                while clone.bytes_to_read().unwrap() > 0 {
-                    match clone.read(&mut buffer) {
-                        Ok(bytes) => {
-                            if bytes > 0 {
-                                if debug_serial {
-                                    eprint!("{}", buffer[0] as char);
-                                }
-                            }
+            // Try to reconnect if port is not available
+            {
+                let mut port_guard = port_clone.lock().unwrap();
+                if port_guard.is_none() {
+                    *port_guard = try_open_serial_port(&portname_clone, baudrate, verbose_clone);
+                    // If reconnection successful, send SimulatorType:TheBus
+                    if let Some(ref mut p) = *port_guard {
+                        if let Err(e) = p.write(buffer) {
+                            eprintln!("Error writing to port after reconnection: {}", e);
+                            // Mark for reconnection on next iteration
+                            *port_guard = None;
                         }
-                        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                        Err(e) => eprintln!("{:?}", e),
                     }
-                }
-                if debug_serial {
-                    eprintln!("");
                 }
             }
 
+            // Read the bytes back from the port
+            let mut buffer: [u8; 1] = [0; 1];
+
+            // Scope for port_guard to ensure it's dropped before we try to reconnect
+            {
+                let mut port_guard = port_clone.lock().unwrap();
+
+                if let Some(ref mut p) = *port_guard {
+                    // Check if there are bytes to read
+                    match p.bytes_to_read() {
+                        Ok(bytes) if bytes > 0 => {
+                            if debug_serial_clone {
+                                eprint!("REC: ");
+                            }
+
+                            // Read available bytes
+                            let mut read_error = false;
+                            'reading: while !read_error {
+                                match p.bytes_to_read() {
+                                    Ok(bytes) if bytes > 0 => {
+                                        match p.read(&mut buffer) {
+                                            Ok(bytes) => {
+                                                if bytes > 0 && debug_serial_clone {
+                                                    eprint!("{}", buffer[0] as char);
+                                                }
+                                            }
+                                            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                                            Err(e) => {
+                                                eprintln!("Error reading from port: {:?}", e);
+                                                read_error = true;
+                                                need_reconnect = true;
+                                                break 'reading;
+                                            }
+                                        }
+                                    }
+                                    Ok(_) => break 'reading,
+                                    Err(e) => {
+                                        eprintln!("Error checking bytes to read: {:?}", e);
+                                        read_error = true;
+                                        need_reconnect = true;
+                                        break 'reading;
+                                    }
+                                }
+                            }
+
+                            if debug_serial_clone {
+                                eprintln!("");
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Error checking bytes to read: {:?}", e);
+                            need_reconnect = true;
+                        }
+                        _ => {}
+                    }
+                }
+
+                // If we need to reconnect, set the port to None
+                if need_reconnect {
+                    *port_guard = None;
+                }
+            }
+
+            // Sleep before next iteration
             thread::sleep(Duration::from_millis(100));
         }
     });
@@ -155,7 +235,20 @@ pub fn real_main(opts: &Opts) {
                 }
 
                 // Write to serial port
-                let _ = port.write(&cmdbuf);
+                let mut port_guard = port.lock().unwrap();
+                // Try to reconnect if port is not available
+                if port_guard.is_none() {
+                    *port_guard = try_open_serial_port(&portname, baudrate, verbose);
+                }
+
+                // Write to port if available
+                if let Some(ref mut p) = *port_guard {
+                    if let Err(e) = p.write(&cmdbuf) {
+                        eprintln!("Error writing to port: {}", e);
+                        // Port might be disconnected, set to None to trigger reconnection next time
+                        *port_guard = None;
+                    }
+                }
             }
         }
 
