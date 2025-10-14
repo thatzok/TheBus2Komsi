@@ -12,7 +12,7 @@ use serialport::SerialPort;
 use crate::api::getapidata;
 use crate::api2vehicle::get_vehicle_state_from_api;
 use crate::opts::Opts;
-use crate::vehicle::compare_vehicle_states;
+use crate::vehiclediff::compare_vehicle_states;
 use crate::vehicle::init_vehicle_state;
 use crate::vehicle::print_vehicle_state;
 
