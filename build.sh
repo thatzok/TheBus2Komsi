@@ -1,2 +1,2 @@
-cargo clean && cargo build --bin TheBusTestAPI --features="disablekomsiport" --verbose
-cargo clean && cargo build --bin TheBus2Komsi --verbose
+cargo clean && cargo build --release --bin TheBusTestAPI --features="disablekomsiport" --verbose
+cargo clean && cargo build --release --bin TheBus2Komsi --verbose

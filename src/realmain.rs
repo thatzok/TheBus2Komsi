@@ -3,18 +3,20 @@ use std::io::Read;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::thread::sleep;
 use std::time::{Duration, Instant};
+
+use tokio::time::sleep;
 
 use configparser::ini::Ini;
 use serialport::SerialPort;
 
-use crate::api::getapidata;
-use crate::api2vehicle::get_vehicle_state_from_api;
+// TODO will be removed
 use crate::opts::Opts;
 use crate::vehiclediff::compare_vehicle_states;
-use crate::vehicle::init_vehicle_state;
-use crate::vehicle::print_vehicle_state;
+
+use the_bus_telemetry::api::{get_current_vehicle_name, get_vehicle, RequestConfig};
+use the_bus_telemetry::api2vehicle::get_vehicle_state_from_api;
+use the_bus_telemetry::vehicle::{init_vehicle_state, print_vehicle_state};
 
 // Serial port functionality
 // This function is only included when the disablekomsiport feature is not enabled
@@ -38,7 +40,8 @@ fn try_open_serial_port(
     }
 }
 
-pub fn real_main(opts: &Opts) {
+#[tokio::main]
+pub async fn real_main(opts: &Opts) {
     let debug = opts.debug;
     let debug_serial = opts.debug_serial;
     let verbose = opts.verbose;
@@ -49,7 +52,6 @@ pub fn real_main(opts: &Opts) {
     }
 
     let mut vehicle_state = init_vehicle_state();
-    let mut api_state = -1;
 
     let config_path = "TheBus2Komsi.ini";
 
@@ -60,11 +62,11 @@ pub fn real_main(opts: &Opts) {
 
     if Path::new(config_path).exists() {
         // now we get config ini
-        let mut config = Ini::new();
-        let _ = config.load(config_path);
+        let mut config_file = Ini::new();
+        let _ = config_file.load(config_path);
 
         // Check for missing configuration values and use defaults if needed
-        match config.getint("default", "baudrate") {
+        match config_file.getint("default", "baudrate") {
             Ok(Some(value)) => baudrate = value as u32,
             Ok(None) | Err(_) => {
                 if verbose {
@@ -73,7 +75,7 @@ pub fn real_main(opts: &Opts) {
             }
         }
 
-        match config.getint("default", "sleeptime") {
+        match config_file.getint("default", "sleeptime") {
             Ok(Some(value)) => sleeptime = value as u64,
             Ok(None) | Err(_) => {
                 if verbose {
@@ -82,7 +84,7 @@ pub fn real_main(opts: &Opts) {
             }
         }
 
-        match config.get("default", "portname") {
+        match config_file.get("default", "portname") {
             Some(value) => portname = value,
             None => {
                 if verbose {
@@ -91,7 +93,7 @@ pub fn real_main(opts: &Opts) {
             }
         }
 
-        match config.get("default", "ip") {
+        match config_file.get("default", "ip") {
             Some(value) => clientip = value,
             None => {
                 if verbose {
@@ -144,6 +146,9 @@ pub fn real_main(opts: &Opts) {
     let debug_serial_clone = debug_serial;
     #[cfg(not(feature = "disablekomsiport"))]
     let verbose_clone = verbose;
+
+    // api client config struct
+    let mut config = RequestConfig::new().host(clientip.clone()).debugging(debug);
 
     // Serial port reading thread
     // This thread continuously reads data from the serial port and handles reconnection if needed
@@ -231,70 +236,107 @@ pub fn real_main(opts: &Opts) {
         }
     });
 
+    let sleeptime_error = 1000;
+
+    let interval_error = Duration::from_millis(sleeptime_error);
     let interval = Duration::from_millis(sleeptime);
+
     let mut next_time = Instant::now() + interval;
 
+    let mut vehicle_name = "".to_string();
+    let mut old_vehicle_name = "".to_string();
+
+    let mut zaehler = 0;
+
     loop {
-        let api_bus_result = getapidata(&clientip, opts.debug);
+        if (vehicle_name.is_empty()) || (zaehler > 10) {
+            config.vehicle_name = "Current".to_string();
+            vehicle_name = get_current_vehicle_name(&config).await;
+            zaehler = 0;
+        }
 
-        if api_bus_result.is_err() {
-            if debug {
-                eprintln!("getapidata error: {}", api_bus_result.unwrap_err());
+        if vehicle_name.is_empty() {
+            println!("No vehicle found, not in bus.");
+            vehicle_state = init_vehicle_state();
+            old_vehicle_name = "".to_string();
+            sleep(interval_error).await;
+            continue;
+        }
+
+        if config.debugging {
+            println!("Vehicle-Name: {}", vehicle_name);
+        }
+
+        config.vehicle_name = vehicle_name.clone();
+
+        let vehicle_response = get_vehicle(&config).await;
+        if vehicle_response.is_err() {
+            println!("Error getting vehicle data in JSON.");
+            vehicle_name = "".to_string();
+            sleep(interval_error).await;
+            continue;
+        }
+
+        zaehler += 1;
+        let vehicle = vehicle_response.unwrap();
+        if config.vehicle_model != vehicle.vehicle_model {
+            config.vehicle_model = vehicle.vehicle_model.clone();
+        }
+
+        if verbose && old_vehicle_name.is_empty() {
+            println!("Hingesetzt. Jetzt gehts los!");
+        }
+
+        if vehicle_name != old_vehicle_name {
+            if verbose {
+                println!(
+                    "Vehicle is now: model={} name={}",
+                    config.vehicle_model, vehicle_name
+                );
             }
-            if api_state != 0 {
-                if verbose {
-                    println!("Bitte einsteigen und hinsetzen.");
-                }
-                api_state = 0;
+
+            old_vehicle_name = vehicle_name.clone();
+        }
+
+        // now we can process
+
+        let new_vehicle_state = get_vehicle_state_from_api(vehicle);
+        if config.debugging {
+            print_vehicle_state(&new_vehicle_state);
+        }
+
+        // compare and create cmd buf
+        let cmdbuf = compare_vehicle_states(&vehicle_state, &new_vehicle_state, verbose, false);
+
+        // replace after compare for next round
+        vehicle_state = new_vehicle_state;
+
+        // Send commands to the serial port when the disablekomsiport feature is not enabled
+        #[cfg(not(feature = "disablekomsiport"))]
+        if cmdbuf.len() > 0 {
+            if opts.debug_serial {
+                println!("SENDING -> {:?}", cmdbuf);
             }
-        } else {
-            let api_bus = api_bus_result.unwrap();
-            // println!("{:?}", api_bus);
-            if api_state != 1 {
-                if verbose {
-                    println!("Hingesetzt. Jetzt gehts los!");
-                }
-                api_state = 1;
+
+            // Write to serial port with reconnection handling
+            let mut port_guard = port.lock().unwrap();
+
+            // Try to reconnect if port is not available
+            if port_guard.is_none() {
+                *port_guard = try_open_serial_port(&portname, baudrate, verbose);
             }
 
-            let newstate = get_vehicle_state_from_api(api_bus);
-            if debug {
-                print_vehicle_state(&newstate);
-            }
-
-            // compare and create cmd buf
-            let cmdbuf = compare_vehicle_states(&vehicle_state, &newstate, verbose, false);
-
-            // replace after compare for next round
-            vehicle_state = newstate;
-
-            // Send commands to the serial port when the disablekomsiport feature is not enabled
-            #[cfg(not(feature = "disablekomsiport"))]
-            if cmdbuf.len() > 0 {
-                if opts.debug_serial {
-                    println!("SENDING -> {:?}", cmdbuf);
-                }
-
-                // Write to serial port with reconnection handling
-                let mut port_guard = port.lock().unwrap();
-
-                // Try to reconnect if port is not available
-                if port_guard.is_none() {
-                    *port_guard = try_open_serial_port(&portname, baudrate, verbose);
-                }
-
-                // Write to port if available
-                if let Some(ref mut p) = *port_guard {
-                    if let Err(e) = p.write(&cmdbuf) {
-                        eprintln!("Error writing to port: {}", e);
-                        // Port might be disconnected, set to None to trigger reconnection next time
-                        *port_guard = None;
-                    }
+            // Write to port if available
+            if let Some(ref mut p) = *port_guard {
+                if let Err(e) = p.write(&cmdbuf) {
+                    eprintln!("Error writing to port: {}", e);
+                    // Port might be disconnected, set to None to trigger reconnection next time
+                    *port_guard = None;
                 }
             }
         }
 
-        sleep(next_time - Instant::now());
+        sleep(next_time - Instant::now()).await;
         next_time += interval;
     }
 }
