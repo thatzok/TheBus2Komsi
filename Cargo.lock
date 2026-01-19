@@ -650,6 +650,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "komsi"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0d2ecc070049b0f196d195c1b28c9408e9843b8e9c2c4887a619797e08bc93b"
+
+[[package]]
 name = "libc"
 version = "0.2.177"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1256,10 +1262,11 @@ dependencies = [
 
 [[package]]
 name = "the-bus-telemetry"
-version = "2.0.0"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46091c9166d073b6693619ed60e22a247875bf9403ef59c9b42b43d588f5904f"
+checksum = "13ece7293044839a55b508c5e043f3f78f7422242aa31ca280ef486f4ae2c721"
 dependencies = [
+ "komsi",
  "reqwest",
  "serde",
  "serde_json",
@@ -1267,10 +1274,11 @@ dependencies = [
 
 [[package]]
 name = "the_bus_2_komsi"
-version = "1.9.0"
+version = "1.10.0"
 dependencies = [
  "clap",
  "configparser",
+ "komsi",
  "serde_json",
  "serialport",
  "the-bus-telemetry",

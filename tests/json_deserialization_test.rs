@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
-use the_bus_2_komsi::api::ApiVehicleType;
 use serde_json;
+use the_bus_telemetry::api::ApiVehicleType;
 
 #[test]
 fn test_json_deserialization_from_files() {

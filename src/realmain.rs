@@ -8,15 +8,22 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use configparser::ini::Ini;
+use komsi::vehicle::{VehicleLogger, VehicleState};
+
+struct PrintLogger;
+
+impl VehicleLogger for PrintLogger {
+    fn log(&self, msg: String) {
+        println!("{}", msg);
+    }
+}
 use serialport::SerialPort;
 
 // TODO will be removed
 use crate::opts::Opts;
-use crate::vehiclediff::compare_vehicle_states;
 
 use the_bus_telemetry::api::{get_current_vehicle_name, get_vehicle, RequestConfig};
 use the_bus_telemetry::api2vehicle::get_vehicle_state_from_api;
-use the_bus_telemetry::vehicle::{init_vehicle_state, print_vehicle_state};
 
 // Serial port functionality
 // This function is only included when the disablekomsiport feature is not enabled
@@ -51,7 +58,7 @@ pub async fn real_main(opts: &Opts) {
         println!("Version: {}", env!("CARGO_PKG_VERSION"));
     }
 
-    let mut vehicle_state = init_vehicle_state();
+    let mut vehicle_state = VehicleState::new();
 
     let config_path = "TheBus2Komsi.ini";
 
@@ -257,7 +264,7 @@ pub async fn real_main(opts: &Opts) {
 
         if vehicle_name.is_empty() {
             println!("No vehicle found, not in bus.");
-            vehicle_state = init_vehicle_state();
+            vehicle_state = VehicleState::new();
             old_vehicle_name = "".to_string();
             sleep(interval_error).await;
             continue;
@@ -302,11 +309,15 @@ pub async fn real_main(opts: &Opts) {
 
         let new_vehicle_state = get_vehicle_state_from_api(vehicle);
         if config.debugging {
-            print_vehicle_state(&new_vehicle_state);
+            new_vehicle_state.print();
         }
 
         // compare and create cmd buf
-        let cmdbuf = compare_vehicle_states(&vehicle_state, &new_vehicle_state, verbose, false);
+        let mut logger: Option<&dyn VehicleLogger> = None;
+        if verbose {
+            logger = Some(&PrintLogger);
+        }
+        let cmdbuf = vehicle_state.compare(&new_vehicle_state, false, logger);
 
         // replace after compare for next round
         vehicle_state = new_vehicle_state;
