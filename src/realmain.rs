@@ -1,14 +1,16 @@
 use std::io;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
+use chrono::Local;
 use tokio::time::sleep;
 
 use configparser::ini::Ini;
 use komsi::vehicle::{VehicleLogger, VehicleState};
+use komsi::komsi::{KomsiCommand,build_komsi_command,build_komsi_command_eol,KomsiDateTime};
 
 struct PrintLogger;
 
@@ -131,14 +133,38 @@ pub async fn real_main(opts: &Opts) {
 
     // Send SimulatorType:TheBus initialization message if port is available
     #[cfg(not(feature = "disablekomsiport"))]
-    let string = "O1\x0a";
-    #[cfg(not(feature = "disablekomsiport"))]
-    let buffer = string.as_bytes();
+    let init_buffer = {
+        let mut buffer = Vec::new();
+
+        // TODO SIMULATOR-UND-DATUMUHRZEIT START
+        let simulator_type = KomsiCommand::SimulatorType(1);
+        let now = Local::now();
+        use chrono::Datelike;
+        use chrono::Timelike;
+        let datetime = KomsiCommand::DateTime(KomsiDateTime {
+            year: now.year() as u16,
+            month: now.month() as u8,
+            day: now.day() as u8,
+            hour: now.hour() as u8,
+            min: now.minute() as u8,
+            sec: now.second() as u8,
+        });
+
+        // serialze simulator_type and datetime into buffer
+        buffer.extend_from_slice(&build_komsi_command(simulator_type));
+        buffer.extend_from_slice(&build_komsi_command(datetime));
+
+        // hänge ein "\n" NEW-LINE an den Buffer
+        buffer.extend_from_slice(&build_komsi_command_eol());
+
+        buffer
+    };
+
     #[cfg(not(feature = "disablekomsiport"))]
     {
         let mut port_guard = port.lock().unwrap();
         if let Some(ref mut p) = *port_guard {
-            if let Err(e) = p.write(buffer) {
+            if let Err(e) = p.write(&init_buffer) {
                 eprintln!("Error writing to port: {}", e);
             }
         }
@@ -171,7 +197,7 @@ pub async fn real_main(opts: &Opts) {
                     *port_guard = try_open_serial_port(&portname_clone, baudrate, verbose_clone);
                     // If reconnection successful, send SimulatorType:TheBus
                     if let Some(ref mut p) = *port_guard {
-                        if let Err(e) = p.write(buffer) {
+                        if let Err(e) = p.write(&init_buffer) {
                             eprintln!("Error writing to port after reconnection: {}", e);
                             // Mark for reconnection on next iteration
                             *port_guard = None;
