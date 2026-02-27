@@ -151,10 +151,13 @@ pub async fn real_main(opts: &Opts) {
         p_list
     };
 
+    #[cfg(not(feature = "disablekomsiport"))]
+    let mut init_buffer = Vec::new();
+
     // Send SimulatorType:TheBus initialization message if port is available
     #[cfg(not(feature = "disablekomsiport"))]
-    let mut init_buffer = {
-        let mut buffer = Vec::new();
+    {
+        init_buffer = Vec::new();
 
         let simulator_type = KomsiCommand::SimulatorType(1);
         let now = Local::now();
@@ -170,13 +173,13 @@ pub async fn real_main(opts: &Opts) {
         });
 
         // serialze simulator_type and datetime into buffer
-        buffer.extend_from_slice(&build_komsi_command(simulator_type));
-        buffer.extend_from_slice(&build_komsi_command(datetime));
+        init_buffer.extend_from_slice(&build_komsi_command(simulator_type));
+        init_buffer.extend_from_slice(&build_komsi_command(datetime));
 
         // hänge ein "\n" NEW-LINE an den Buffer
-        buffer.extend_from_slice(&build_komsi_command_eol());
+        init_buffer.extend_from_slice(&build_komsi_command_eol());
 
-        buffer
+
     };
 
     #[cfg(not(feature = "disablekomsiport"))]
@@ -385,6 +388,7 @@ pub async fn real_main(opts: &Opts) {
         vehicle_state = new_vehicle_state;
 
         // ONLY every 2 minutes but only if we reach this point in the loop
+        #[cfg(not(feature = "disablekomsiport"))]
         if last_world_update.elapsed() >= Duration::from_secs(120) {
             last_world_update = Instant::now();
             // now we check the world

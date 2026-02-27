@@ -1,0 +1,52 @@
+name: Windows Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    name: Build Windows Package
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: [actions/checkout@v4](https://github.com)
+
+      - name: Install Rust
+        uses: [dtolnay/rust-toolchain@stable](https://github.com)
+
+      - name: Rust Cache
+        uses: [Swatinem/rust-cache@v2](https://github.com)
+
+      # 1. Binaries bauen
+      - name: Build Binaries
+        run: |
+          cargo build --release --bin TheBus2Komsi
+          cargo build --release --bin TheBusTestAPI --features disablekomsiport
+
+      # 2. Paketstruktur vorbereiten
+      - name: Prepare Package Folder
+        run: |
+          mkdir release_pkg
+          cp target/release/TheBus2Komsi.exe release_pkg/
+          cp target/release/TheBusTestAPI.exe release_pkg/
+          cp TheBus2Komsi.ini release_pkg/
+
+      # 3. ZIP mit Versionsnummer im Namen erstellen
+      # github.ref_name enthält bei einem Tag-Trigger genau den Tag-Namen (z.B. v1.12.0)
+      - name: Create ZIP Archive
+        run: |
+          Compress-Archive -Path release_pkg/* -DestinationPath "TheBus2Komsi_${{ github.ref_name }}_Windows.zip"
+
+      # 4. ZIP-Datei zum GitHub Release hochladen
+      - name: Create Release
+        uses: [softprops/action-gh-release@v2](https://github.com)
+        with:
+          files: "TheBus2Komsi_${{ github.ref_name }}_Windows.zip"
+          generate_release_notes: true
+
+

@@ -1,0 +1,9 @@
+[alias]
+
+build-thebus2komsi = "build --bin TheBus2Komsi --verbose"
+
+build-thebustestapi = "build --bin TheBusTestAPI --features disablekomsiport --verbose"
+
+build-all = ["build-thebus2komsi", "build-thebustestapi"]
+
+release-all = ["build", "--release", "--bin", "TheBus2Komsi", "build", "--release", "--bin", "TheBusTestAPI", "--features", "disablekomsiport"]
