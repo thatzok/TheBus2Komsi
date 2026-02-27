@@ -9,8 +9,8 @@ use chrono::Local;
 use tokio::time::sleep;
 
 use configparser::ini::Ini;
+use komsi::komsi::{build_komsi_command, build_komsi_command_eol, KomsiCommand, KomsiDateTime};
 use komsi::vehicle::{VehicleLogger, VehicleState};
-use komsi::komsi::{KomsiCommand,build_komsi_command,build_komsi_command_eol,KomsiDateTime};
 
 struct PrintLogger;
 
@@ -24,7 +24,7 @@ use serialport::SerialPort;
 // TODO will be removed
 use crate::opts::Opts;
 
-use the_bus_telemetry::api::{get_current_vehicle_name, get_vehicle, RequestConfig};
+use the_bus_telemetry::api::{get_current_vehicle_name, get_vehicle, get_world, RequestConfig};
 use the_bus_telemetry::api2vehicle::get_vehicle_state_from_api;
 
 // Serial port functionality
@@ -93,7 +93,13 @@ pub async fn real_main(opts: &Opts) {
             }
         }
 
-        let port_keys = ["portname", "portname2", "portname3", "portname4", "portname5"];
+        let port_keys = [
+            "portname",
+            "portname2",
+            "portname3",
+            "portname4",
+            "portname5",
+        ];
         for key in port_keys {
             if let Some(value) = config_file.get("default", key) {
                 if !value.is_empty() {
@@ -147,10 +153,9 @@ pub async fn real_main(opts: &Opts) {
 
     // Send SimulatorType:TheBus initialization message if port is available
     #[cfg(not(feature = "disablekomsiport"))]
-    let init_buffer = {
+    let mut init_buffer = {
         let mut buffer = Vec::new();
 
-        // TODO SIMULATOR-UND-DATUMUHRZEIT START
         let simulator_type = KomsiCommand::SimulatorType(1);
         let now = Local::now();
         use chrono::Datelike;
@@ -210,11 +215,15 @@ pub async fn real_main(opts: &Opts) {
                 {
                     let mut port_guard = port_clone.lock().unwrap();
                     if port_guard.is_none() {
-                        *port_guard = try_open_serial_port(&portname_clone, baudrate, verbose_clone);
+                        *port_guard =
+                            try_open_serial_port(&portname_clone, baudrate, verbose_clone);
                         // If reconnection successful, send SimulatorType:TheBus
                         if let Some(ref mut p) = *port_guard {
                             if let Err(e) = p.write(&init_buffer_clone) {
-                                eprintln!("Error writing to port {} after reconnection: {}", portname_clone, e);
+                                eprintln!(
+                                    "Error writing to port {} after reconnection: {}",
+                                    portname_clone, e
+                                );
                                 // Mark for reconnection on next iteration
                                 *port_guard = None;
                             }
@@ -248,14 +257,20 @@ pub async fn real_main(opts: &Opts) {
                                             }
                                             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                                             Err(e) => {
-                                                eprintln!("Error reading from port {}: {:?}", portname_clone, e);
+                                                eprintln!(
+                                                    "Error reading from port {}: {:?}",
+                                                    portname_clone, e
+                                                );
                                                 need_reconnect = true;
                                                 break 'reading;
                                             }
                                         },
                                         Ok(_) => break 'reading,
                                         Err(e) => {
-                                            eprintln!("Error checking bytes to read on {}: {:?}", portname_clone, e);
+                                            eprintln!(
+                                                "Error checking bytes to read on {}: {:?}",
+                                                portname_clone, e
+                                            );
                                             need_reconnect = true;
                                             break 'reading;
                                         }
@@ -267,7 +282,10 @@ pub async fn real_main(opts: &Opts) {
                                 }
                             }
                             Err(e) => {
-                                eprintln!("Error checking bytes to read on {}: {:?}", portname_clone, e);
+                                eprintln!(
+                                    "Error checking bytes to read on {}: {:?}",
+                                    portname_clone, e
+                                );
                                 need_reconnect = true;
                             }
                             _ => {}
@@ -297,6 +315,7 @@ pub async fn real_main(opts: &Opts) {
     let mut old_vehicle_name = "".to_string();
 
     let mut zaehler = 0;
+    let mut last_world_update = Instant::now() - Duration::from_secs(120); // Sofort beim ersten Mal ausführen
 
     loop {
         if (vehicle_name.is_empty()) || (zaehler > 10) {
@@ -360,10 +379,39 @@ pub async fn real_main(opts: &Opts) {
         if verbose {
             logger = Some(&PrintLogger);
         }
-        let cmdbuf = vehicle_state.compare(&new_vehicle_state, false, logger);
+        let mut cmdbuf = vehicle_state.compare(&new_vehicle_state, false, logger);
 
         // replace after compare for next round
         vehicle_state = new_vehicle_state;
+
+        // ONLY every 2 minutes but only if we reach this point in the loop
+        if last_world_update.elapsed() >= Duration::from_secs(120) {
+            last_world_update = Instant::now();
+            // now we check the world
+            let api_world_response = get_world(&config).await;
+            if api_world_response.is_err() {
+                println!("Error getting world data.");
+            } else {
+                let date_time_str = api_world_response.unwrap().date_time;
+                let komsi_date_time = KomsiDateTime::from_iso(&date_time_str);
+                if komsi_date_time.is_ok() {
+                    let komsi_date_time = komsi_date_time.unwrap();
+
+                    let cmd_datetime = KomsiCommand::DateTime(komsi_date_time);
+
+                    init_buffer = Vec::new(); // we use the init_buffer, but clear it here
+
+                    let simulator_type = KomsiCommand::SimulatorType(1);
+                    init_buffer.extend_from_slice(&build_komsi_command(simulator_type));
+                    init_buffer.extend_from_slice(&build_komsi_command(cmd_datetime));
+
+                    init_buffer.extend_from_slice(&build_komsi_command_eol());
+
+                    // append to cmdbuf
+                    cmdbuf.extend_from_slice(&init_buffer);
+                }
+            }
+        }
 
         // Send commands to the serial ports when the disablekomsiport feature is not enabled
         #[cfg(not(feature = "disablekomsiport"))]
