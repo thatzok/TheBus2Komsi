@@ -14,13 +14,13 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: [actions/checkout@v4](https://github.com)
+        uses: actions/checkout@v4
 
       - name: Install Rust
-        uses: [dtolnay/rust-toolchain@stable](https://github.com)
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Rust Cache
-        uses: [Swatinem/rust-cache@v2](https://github.com)
+        uses: Swatinem/rust-cache@v2
 
       # 1. Binaries bauen
       - name: Build Binaries
@@ -36,15 +36,14 @@ jobs:
           cp target/release/TheBusTestAPI.exe release_pkg/
           cp TheBus2Komsi.ini release_pkg/
 
-      # 3. ZIP mit Versionsnummer im Namen erstellen
-      # github.ref_name enthält bei einem Tag-Trigger genau den Tag-Namen (z.B. v1.12.0)
+      # 3. ZIP mit Versionsnummer erstellen
       - name: Create ZIP Archive
         run: |
           Compress-Archive -Path release_pkg/* -DestinationPath "TheBus2Komsi_${{ github.ref_name }}_Windows.zip"
 
       # 4. ZIP-Datei zum GitHub Release hochladen
       - name: Create Release
-        uses: [softprops/action-gh-release@v2](https://github.com)
+        uses: softprops/action-gh-release@v2
         with:
           files: "TheBus2Komsi_${{ github.ref_name }}_Windows.zip"
           generate_release_notes: true
