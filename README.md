@@ -1,6 +1,8 @@
 # TheBus2Komsi
 [![Build](https://github.com/thatzok/TheBus2Komsi/actions/workflows/build.yml/badge.svg)](https://github.com/thatzok/TheBus2Komsi/actions/workflows/build.yml)
 
+**English** | [Deutsch](README.de.md)
+
 TheBus2Komsi is an API-Client for the "TheBus" bus simulator.<br>
 
 TheBus2Komsi reads information (for speed, lamps, etc.) from the TheBus telemetry-API and sends them to the serial port (USB) using the [KOMSI protocol](https://github.com/thatzok/Komsi-Protocol)
@@ -21,7 +23,7 @@ The configuration is done via the file TheBus2Komsi.ini, which must be located i
 # TheBus2Komsi -l
 
 [default]
-portname = com22
+portname = com8
 baudrate = 115200
 sleeptime = 200
 ip = 127.0.0.1
