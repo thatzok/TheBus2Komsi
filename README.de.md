@@ -9,6 +9,14 @@ TheBus2Komsi liest Informationen (für Geschwindigkeit, Lampen, etc.) aus der Th
 
 Ein an den USB-Anschluss angeschlossener Arduino/ESP32 oder ähnliches kann diese Nachrichten dann lesen und die Daten auf einem Bus-Dashboard anzeigen (z. B. Geschwindigkeit auf einem Tacho, Lampenbeleuchtung, etc.).
 
+
+## Download & Installation
+
+1. Gehe zur Seite des [neuesten Releases](https://github.com/thatzok/TheBus2Komsi/releases).
+2. Lade die Datei `TheBus2Komsi_vx.x.x_Windows.zip` herunter.
+3. Entpacke den Inhalt der ZIP-Datei in einen Ordner deiner Wahl.
+4. Du findest dort zwei ausführbare Dateien und die  `TheBus2Komsi.ini`.
+
 ## Verwendung
 
 Die Konfiguration erfolgt über die Datei TheBus2Komsi.ini, die sich im selben Verzeichnis wie die TheBus2Komsi.exe befinden muss.

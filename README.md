@@ -9,6 +9,13 @@ TheBus2Komsi reads information (for speed, lamps, etc.) from the TheBus telemetr
 
 An Arduino/ESP32 or similar connected to the USB port can then read these messages and display the data on a bus dashboard (e.g. speed on a speedometer, lamp lighting, etc.).
 
+## Download & Installation
+
+1. Go to [latest Releases](https://github.com/thatzok/TheBus2Komsi/releases).
+2. Download `TheBus2Komsi_vx.x.x_Windows.zip` .
+3. Extract the contents of the ZIP file into a folder of your choice.
+4. You will find two executables and the  `TheBus2Komsi.ini`.
+
 ## Usage
 
 The configuration is done via the file TheBus2Komsi.ini, which must be located in the same directory as TheBus2Komsi.exe.
