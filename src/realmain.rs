@@ -5,7 +5,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use chrono::Local;
 use tokio::time::sleep;
 
 use configparser::ini::Ini;
@@ -133,10 +132,16 @@ pub async fn real_main(opts: &Opts) {
 
     // Display appropriate startup message based on feature configuration
     #[cfg(feature = "disablekomsiport")]
-    println!("TheBus2Komsi has started. Have fun!");
+    println!(
+        "TheBusTestAPI {} has started. Have fun!",
+        env!("CARGO_PKG_VERSION")
+    );
 
     #[cfg(not(feature = "disablekomsiport"))]
-    println!("TheBusTestAPI has started. Have fun!");
+    println!(
+        "TheBus2Komsi {} has started. Have fun!",
+        env!("CARGO_PKG_VERSION")
+    );
 
     // Serial port initialization and configuration
     // Create shared ports that can be safely accessed from multiple threads
@@ -158,28 +163,11 @@ pub async fn real_main(opts: &Opts) {
     #[cfg(not(feature = "disablekomsiport"))]
     {
         init_buffer = Vec::new();
-
         let simulator_type = KomsiCommand::SimulatorType(1);
-        let now = Local::now();
-        use chrono::Datelike;
-        use chrono::Timelike;
-        let datetime = KomsiCommand::DateTime(KomsiDateTime {
-            year: now.year() as u16,
-            month: now.month() as u8,
-            day: now.day() as u8,
-            hour: now.hour() as u8,
-            min: now.minute() as u8,
-            sec: now.second() as u8,
-        });
-
         // serialze simulator_type and datetime into buffer
         init_buffer.extend_from_slice(&build_komsi_command(simulator_type));
-        init_buffer.extend_from_slice(&build_komsi_command(datetime));
-
         // hänge ein "\n" NEW-LINE an den Buffer
         init_buffer.extend_from_slice(&build_komsi_command_eol());
-
-
     };
 
     #[cfg(not(feature = "disablekomsiport"))]
@@ -320,6 +308,8 @@ pub async fn real_main(opts: &Opts) {
     let mut zaehler = 0;
     let mut last_world_update = Instant::now() - Duration::from_secs(120); // Sofort beim ersten Mal ausführen
 
+    let mut get_world_update = true;
+
     loop {
         if (vehicle_name.is_empty()) || (zaehler > 10) {
             config.vehicle_name = "Current".to_string();
@@ -331,6 +321,7 @@ pub async fn real_main(opts: &Opts) {
             println!("No vehicle found, not in bus.");
             vehicle_state = VehicleState::new();
             old_vehicle_name = "".to_string();
+            get_world_update = true;
             sleep(interval_error).await;
             continue;
         }
@@ -345,6 +336,7 @@ pub async fn real_main(opts: &Opts) {
         if vehicle_response.is_err() {
             println!("Error getting vehicle data in JSON.");
             vehicle_name = "".to_string();
+            get_world_update = true;
             sleep(interval_error).await;
             continue;
         }
@@ -372,9 +364,28 @@ pub async fn real_main(opts: &Opts) {
 
         // now we can process
 
-        let new_vehicle_state = get_vehicle_state_from_api(vehicle);
+        let mut new_vehicle_state = get_vehicle_state_from_api(vehicle);
         if config.debugging {
             new_vehicle_state.print();
+        }
+        new_vehicle_state.datetime = vehicle_state.datetime;
+
+        // ONLY every 2 minutes but only if we reach this point in the loop
+        if get_world_update || last_world_update.elapsed() >= Duration::from_secs(60) {
+            last_world_update = Instant::now();
+            get_world_update = false;
+
+            // now we check the world
+            let api_world_response = get_world(&config).await;
+            if api_world_response.is_err() {
+                println!("Error getting world data.");
+            } else {
+                let date_time_str = api_world_response.unwrap().date_time;
+                let komsi_date_time = KomsiDateTime::from_iso(&date_time_str);
+                if komsi_date_time.is_ok() {
+                    new_vehicle_state.datetime = komsi_date_time.unwrap();
+                }
+            }
         }
 
         // compare and create cmd buf
@@ -386,36 +397,6 @@ pub async fn real_main(opts: &Opts) {
 
         // replace after compare for next round
         vehicle_state = new_vehicle_state;
-
-        // ONLY every 2 minutes but only if we reach this point in the loop
-        #[cfg(not(feature = "disablekomsiport"))]
-        if last_world_update.elapsed() >= Duration::from_secs(120) {
-            last_world_update = Instant::now();
-            // now we check the world
-            let api_world_response = get_world(&config).await;
-            if api_world_response.is_err() {
-                println!("Error getting world data.");
-            } else {
-                let date_time_str = api_world_response.unwrap().date_time;
-                let komsi_date_time = KomsiDateTime::from_iso(&date_time_str);
-                if komsi_date_time.is_ok() {
-                    let komsi_date_time = komsi_date_time.unwrap();
-
-                    let cmd_datetime = KomsiCommand::DateTime(komsi_date_time);
-
-                    init_buffer = Vec::new(); // we use the init_buffer, but clear it here
-
-                    let simulator_type = KomsiCommand::SimulatorType(1);
-                    init_buffer.extend_from_slice(&build_komsi_command(simulator_type));
-                    init_buffer.extend_from_slice(&build_komsi_command(cmd_datetime));
-
-                    init_buffer.extend_from_slice(&build_komsi_command_eol());
-
-                    // append to cmdbuf
-                    cmdbuf.extend_from_slice(&init_buffer);
-                }
-            }
-        }
 
         // Send commands to the serial ports when the disablekomsiport feature is not enabled
         #[cfg(not(feature = "disablekomsiport"))]
