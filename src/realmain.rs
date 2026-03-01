@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use configparser::ini::Ini;
-use komsi::komsi::{build_komsi_command, build_komsi_command_eol, KomsiCommand, KomsiDateTime};
+use komsi::{KomsiCommand, KomsiDateTime};
 use komsi::vehicle::{VehicleLogger, VehicleState};
 
 struct PrintLogger;
@@ -165,9 +165,9 @@ pub async fn real_main(opts: &Opts) {
         init_buffer = Vec::new();
         let simulator_type = KomsiCommand::SimulatorType(1);
         // serialze simulator_type and datetime into buffer
-        init_buffer.extend_from_slice(&build_komsi_command(simulator_type));
+        init_buffer.extend_from_slice(&KomsiCommand::build(&simulator_type));
         // hänge ein "\n" NEW-LINE an den Buffer
-        init_buffer.extend_from_slice(&build_komsi_command_eol());
+        init_buffer.extend_from_slice(&KomsiCommand::build_eol());
     };
 
     #[cfg(not(feature = "disablekomsiport"))]
