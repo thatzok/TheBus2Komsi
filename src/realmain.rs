@@ -328,7 +328,7 @@ pub async fn real_main(opts: &Opts) {
             sleep(interval_error).await;
             //            continue;
         };
-        
+
         if config.debugging {
             println!("Vehicle-Name: {}", vehicle_name);
         }
@@ -387,8 +387,10 @@ pub async fn real_main(opts: &Opts) {
         }
         new_vehicle_state.datetime = vehicle_state.datetime;
 
-        // ONLY every minute but only if we reach this point in the loop
-        if get_world_update || last_world_update.elapsed() >= Duration::from_secs(60) {
+        // ONLY every minute but only if we have a valid vehicle
+        if !vehicle_name.is_empty()
+            && (get_world_update || last_world_update.elapsed() >= Duration::from_secs(60))
+        {
             last_world_update = Instant::now();
             get_world_update = false;
 
