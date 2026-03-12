@@ -8,8 +8,8 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 
 use configparser::ini::Ini;
-use komsi::{KomsiCommand, KomsiDateTime};
 use komsi::vehicle::{VehicleLogger, VehicleState};
+use komsi::{KomsiCommand, KomsiDateTime};
 
 struct PrintLogger;
 
@@ -25,6 +25,7 @@ use crate::opts::Opts;
 
 use the_bus_telemetry::api::{get_current_vehicle_name, get_vehicle, get_world, RequestConfig};
 use the_bus_telemetry::api2vehicle::get_vehicle_state_from_api;
+use the_bus_telemetry::ApiVehicleType;
 
 // Serial port functionality
 // This function is only included when the disablekomsiport feature is not enabled
@@ -295,7 +296,7 @@ pub async fn real_main(opts: &Opts) {
         });
     }
 
-    let sleeptime_error = 1000;
+    let sleeptime_error = 1500;
 
     let interval_error = Duration::from_millis(sleeptime_error);
     let interval = Duration::from_millis(sleeptime);
@@ -310,6 +311,8 @@ pub async fn real_main(opts: &Opts) {
 
     let mut get_world_update = true;
 
+    let mut vehicle_state = VehicleState::new();
+
     loop {
         if (vehicle_name.is_empty()) || (zaehler > 10) {
             config.vehicle_name = "Current".to_string();
@@ -319,35 +322,42 @@ pub async fn real_main(opts: &Opts) {
 
         if vehicle_name.is_empty() {
             println!("No vehicle found, not in bus.");
-            vehicle_state = VehicleState::new();
-            old_vehicle_name = "".to_string();
+            // vehicle_state = VehicleState::new();
+            // old_vehicle_name = "".to_string();
             get_world_update = true;
             sleep(interval_error).await;
-            continue;
-        }
-
+            //            continue;
+        };
+        
         if config.debugging {
             println!("Vehicle-Name: {}", vehicle_name);
         }
 
         config.vehicle_name = vehicle_name.clone();
 
-        let vehicle_response = get_vehicle(&config).await;
-        if vehicle_response.is_err() {
-            println!("Error getting vehicle data in JSON.");
-            vehicle_name = "".to_string();
-            get_world_update = true;
-            sleep(interval_error).await;
-            continue;
-        }
+        let vehicle = {
+            if vehicle_name.is_empty() {
+                ApiVehicleType::new()
+            } else {
+                let vehicle_response = get_vehicle(&config).await;
+                if vehicle_response.is_err() {
+                    println!("Error getting vehicle data in JSON.");
+                    vehicle_name = "".to_string();
+                    get_world_update = true;
+                    sleep(interval_error).await;
+                    ApiVehicleType::new()
+                } else {
+                    zaehler += 1;
+                    vehicle_response.unwrap()
+                }
+            }
+        };
 
-        zaehler += 1;
-        let vehicle = vehicle_response.unwrap();
         if config.vehicle_model != vehicle.vehicle_model {
             config.vehicle_model = vehicle.vehicle_model.clone();
         }
 
-        if verbose && old_vehicle_name.is_empty() {
+        if verbose && old_vehicle_name.is_empty() && !vehicle_name.is_empty() {
             println!("Hingesetzt. Jetzt gehts los!");
         }
 
@@ -364,13 +374,20 @@ pub async fn real_main(opts: &Opts) {
 
         // now we can process
 
-        let mut new_vehicle_state = get_vehicle_state_from_api(vehicle);
+        let mut new_vehicle_state = {
+            if vehicle_name.is_empty() {
+                VehicleState::new()
+            } else {
+                get_vehicle_state_from_api(vehicle)
+            }
+        };
+
         if config.debugging {
             new_vehicle_state.print();
         }
         new_vehicle_state.datetime = vehicle_state.datetime;
 
-        // ONLY every 2 minutes but only if we reach this point in the loop
+        // ONLY every minute but only if we reach this point in the loop
         if get_world_update || last_world_update.elapsed() >= Duration::from_secs(60) {
             last_world_update = Instant::now();
             get_world_update = false;

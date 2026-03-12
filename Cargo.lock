@@ -1368,9 +1368,9 @@ dependencies = [
 
 [[package]]
 name = "the-bus-telemetry"
-version = "5.1.0"
+version = "5.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbfd1c28e9ffd356aa633fe4695de15985a9b5bcc333e169bf01e184e2aea7ab"
+checksum = "ff9b8956f2eb0593c18516711f942565872f26db8c0c14659317627a8dd2dbb4"
 dependencies = [
  "komsi",
  "reqwest",
