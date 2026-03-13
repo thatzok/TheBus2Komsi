@@ -15,6 +15,7 @@ tokio = { version = "1.48", features = ["full"] }
 the-bus-telemetry = "5.2"
 komsi = "2.0"
 chrono = "0.4"
+nusb = "0.1"
 
 [features]
 # When enabled, disables all serial port communication with Komsi hardware
