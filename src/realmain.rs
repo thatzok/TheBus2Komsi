@@ -313,6 +313,8 @@ pub async fn real_main(opts: &Opts) {
 
     let mut vehicle_state = VehicleState::new();
 
+    let mut force_all_variables = false;
+
     loop {
         if (vehicle_name.is_empty()) || (zaehler > 10) {
             config.vehicle_name = "Current".to_string();
@@ -325,6 +327,7 @@ pub async fn real_main(opts: &Opts) {
             // vehicle_state = VehicleState::new();
             // old_vehicle_name = "".to_string();
             get_world_update = true;
+            force_all_variables = true;
             sleep(interval_error).await;
             //            continue;
         };
@@ -412,14 +415,19 @@ pub async fn real_main(opts: &Opts) {
         if verbose {
             logger = Some(&PrintLogger);
         }
-        let mut cmdbuf = vehicle_state.compare(&new_vehicle_state, false, logger);
+        let mut cmdbuf = Vec::new();
 
-        // replace after compare for next round
-        vehicle_state = new_vehicle_state;
+        if !vehicle_name.is_empty() {
+            cmdbuf = vehicle_state.compare(&new_vehicle_state, force_all_variables, logger);
+            force_all_variables = false;
+            // replace after compare for next round
+            vehicle_state = new_vehicle_state;
+        }
 
         // Send commands to the serial ports when the disablekomsiport feature is not enabled
         #[cfg(not(feature = "disablekomsiport"))]
         if cmdbuf.len() > 0 {
+            // we only send, when we have a vehicle name
             if opts.debug_serial {
                 println!("SENDING -> {:?}", cmdbuf);
             }
