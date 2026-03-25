@@ -3,14 +3,15 @@ use the_bus_2_komsi::opts::Opts;
 use the_bus_2_komsi::serial::{show_precise_com_ports};
 use the_bus_2_komsi::realmain::real_main;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let opts = Opts::parse();
 
     if opts.list {
-        show_precise_com_ports();
+        show_precise_com_ports().await;
         return;
     }
 
     // default
-    real_main(&opts);
+    real_main(&opts).await;
 }

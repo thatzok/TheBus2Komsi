@@ -49,7 +49,6 @@ fn try_open_serial_port(
     }
 }
 
-#[tokio::main]
 pub async fn real_main(opts: &Opts) {
     let debug = opts.debug;
     let debug_serial = opts.debug_serial;

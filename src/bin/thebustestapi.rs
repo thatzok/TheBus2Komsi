@@ -2,9 +2,10 @@ use clap::Parser;
 use the_bus_2_komsi::opts::Opts;
 use the_bus_2_komsi::realmain::real_main;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let opts = Opts::parse();
 
     // default
-    real_main(&opts);
+    real_main(&opts).await;
 }

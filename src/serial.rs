@@ -44,10 +44,11 @@ pub fn show_serial_comports() {
 }
 
 
-pub fn show_precise_com_ports() {
-    let usb_devices: Vec<_> = nusb::list_devices()
-        .map(|iter| iter.collect::<Vec<_>>())
-        .unwrap_or_default();
+pub async fn show_precise_com_ports() {
+    let usb_devices: Vec<nusb::DeviceInfo> = match nusb::list_devices().await {
+        Ok(iter) => iter.collect(),
+        _ => Vec::new(),
+    };
 
     let ports = available_ports().unwrap_or_default();
 
@@ -56,9 +57,9 @@ pub fn show_precise_com_ports() {
 
     for p in ports {
         if let SerialPortType::UsbPort(info) = p.port_type {
-            let real_usb = usb_devices.iter().find(|d| {
+            let real_usb = usb_devices.iter().find(|d: &&nusb::DeviceInfo| {
                 let ids_match = d.vendor_id() == info.vid && d.product_id() == info.pid;
-                let sn_match = match (&d.serial_number(), &info.serial_number) {
+                let sn_match = match (d.serial_number(), &info.serial_number) {
                     (Some(u_sn), Some(p_sn)) => {
                         let u = u_sn.to_uppercase();
                         let p = p_sn.to_uppercase();
@@ -69,10 +70,10 @@ pub fn show_precise_com_ports() {
                 ids_match && sn_match
             });
 
-            let chip_mfr = real_usb.and_then(|d| d.manufacturer_string()).unwrap_or("");
-            let chip_prd = real_usb.and_then(|d| d.product_string()).unwrap_or("");
-            let chip_sn  = real_usb.and_then(|d| d.serial_number()).unwrap_or("");
-            let chip_ver = real_usb.map(|d| d.device_version()).unwrap_or(0);
+            let chip_mfr = real_usb.and_then(|d: &nusb::DeviceInfo| d.manufacturer_string()).unwrap_or("");
+            let chip_prd = real_usb.and_then(|d: &nusb::DeviceInfo| d.product_string()).unwrap_or("");
+            let chip_sn  = real_usb.and_then(|d: &nusb::DeviceInfo| d.serial_number()).unwrap_or("");
+            let chip_ver = real_usb.map(|d: &nusb::DeviceInfo| d.device_version()).unwrap_or(0);
 
             let reg_mfr = info.manufacturer.as_deref().unwrap_or("");
             let reg_prd = info.product.as_deref().unwrap_or("");
