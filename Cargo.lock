@@ -1560,7 +1560,7 @@ dependencies = [
 
 [[package]]
 name = "the_bus_2_komsi"
-version = "1.19.5"
+version = "1.19.6"
 dependencies = [
  "chrono",
  "clap",
