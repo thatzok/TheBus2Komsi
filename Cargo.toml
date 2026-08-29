@@ -1,6 +1,6 @@
 [package]
 name = "the_bus_2_komsi"
-version = "1.19.6"
+version = "1.20.0"
 edition = "2024"
 rust-version = "1.92.0"
 authors = ["ThatZok <af@komplix.de>"]
@@ -12,7 +12,7 @@ serialport = "4.9"
 clap = { version = "4.6", features = ["derive"] }
 configparser = "3.1"
 tokio = { version = "1.40", features = ["full"] }
-the-bus-telemetry = "5.2"
+the-bus-telemetry = "5.3"
 komsi = "2.0"
 chrono = "0.4"
 nusb = { version = "0.2.3", features = ["tokio"] }
