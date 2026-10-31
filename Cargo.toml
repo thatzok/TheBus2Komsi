@@ -8,11 +8,11 @@ license = "GPL-3.0-or-later"
 
 [dependencies]
 serde_json = "1.0"
-serialport = "4.9"
+serialport = "4.10.1"
 clap = { version = "4.6", features = ["derive"] }
-configparser = "3.1"
-tokio = { version = "1.40", features = ["full"] }
-the-bus-telemetry = "5.5.0"
+configparser = "3.3"
+tokio = { version = "1.54.1", features = ["full"] }
+the-bus-telemetry = "5.6"
 komsi = "2.0"
 chrono = "0.4"
 nusb = { version = "0.2.3", features = ["tokio"] }
